@@ -1,6 +1,6 @@
 <?php
 /**
- * HTMLApiTest
+ * SelectedHTMLApiTest
  * PHP version 5
  *
  * @category Class
@@ -34,14 +34,14 @@ use \OpenAPI\Client\ObjectSerializer;
 use PHPUnit\Framework\TestCase;
 
 /**
- * HTMLApiTest Class Doc Comment
+ * SelectedHTMLApiTest Class Doc Comment
  *
  * @category Class
  * @package  OpenAPI\Client
  * @author   OpenAPI Generator team
  * @link     https://openapi-generator.tech
  */
-class HTMLApiTest extends TestCase
+class SelectedHTMLApiTest extends TestCase
 {
 
     /**
@@ -73,22 +73,42 @@ class HTMLApiTest extends TestCase
     }
 
     /**
-     * Test case for getHTML
+     * Test case for getSelected
      *
-     * Page HTML by URL.
+     * HTML of a selected page area by URL and CSS selector.
      *
      */
-    public function testGetHTML()
+    public function testGetSelected()
     {
     }
 
     /**
-     * Test case for postHTML
+     * Test case for getSelectedMultiple
      *
-     * Page HTML by URL with POST request to the target page.
+     * HTML of multiple page areas by URL and CSS selectors.
      *
      */
-    public function testPostHTML()
+    public function testGetSelectedMultiple()
+    {
+    }
+
+    /**
+     * Test case for postSelected
+     *
+     * HTML of a selected page areas by URL and CSS selector, with POST request to the target page.
+     *
+     */
+    public function testPostSelected()
+    {
+    }
+
+    /**
+     * Test case for postSelectedMultiple
+     *
+     * HTML of multiple page areas by URL and CSS selectors, with POST request to the target page.
+     *
+     */
+    public function testPostSelectedMultiple()
     {
     }
 }

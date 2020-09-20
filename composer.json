@@ -1,7 +1,7 @@
 {
     "name": "webscraping-ai/webscraping-ai-php",
-    "version": "1.0.0",
-    "description": "A client for https://webscraping.ai API. It provides Chrome JS rendering, rotating proxies and HTML parsing for web scraping.",
+    "version": "2.0.0",
+    "description": "A client for https://webscraping.ai API. It provides a web scaping automation API with Chrome JS rendering, rotating proxies and builtin HTML parsing.",
     "keywords": [
         "openapitools",
         "openapi-generator",
