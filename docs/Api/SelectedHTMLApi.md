@@ -158,7 +158,7 @@ Name | Type | Description  | Notes
 
 ## postSelected
 
-> postSelected($url, $selector, $headers, $timeout, $js, $proxy)
+> postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body)
 
 HTML of a selected page areas by URL and CSS selector, with POST request to the target page
 
@@ -183,15 +183,16 @@ $apiInstance = new OpenAPI\Client\Api\SelectedHTMLApi(
     new GuzzleHttp\Client(),
     $config
 );
-$url = https://example.com; // string | URL of the target page
+$url = https://httpbin.org/post; // string | URL of the target page
 $selector = h1; // string | CSS selector (null by default, returns whole page HTML)
 $headers = {"Cookie":"session=some_id"}; // map[string,string] | HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&headers[One]=value1&headers=[Another]=value2) or as a JSON encoded object (...&headers={\"One\": \"value1\", \"Another\": \"value2\"})
 $timeout = 5000; // int | Maximum processing time in ms. Increase it in case of timeout errors (5000 by default, maximum is 30000)
 $js = true; // bool | Execute on-page JavaScript using a headless browser (true by default), costs 2 requests
 $proxy = datacenter; // string | Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default)
+$request_body = array('key' => new \stdClass); // map[string,object] | Request body to pass to the target page
 
 try {
-    $apiInstance->postSelected($url, $selector, $headers, $timeout, $js, $proxy);
+    $apiInstance->postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body);
 } catch (Exception $e) {
     echo 'Exception when calling SelectedHTMLApi->postSelected: ', $e->getMessage(), PHP_EOL;
 }
@@ -209,6 +210,7 @@ Name | Type | Description  | Notes
  **timeout** | **int**| Maximum processing time in ms. Increase it in case of timeout errors (5000 by default, maximum is 30000) | [optional] [default to 5000]
  **js** | **bool**| Execute on-page JavaScript using a headless browser (true by default), costs 2 requests | [optional] [default to true]
  **proxy** | **string**| Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default) | [optional] [default to &#39;datacenter&#39;]
+ **request_body** | [**map[string,object]**](../Model/object.md)| Request body to pass to the target page | [optional]
 
 ### Return type
 
@@ -220,7 +222,7 @@ void (empty response body)
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: application/json, application/x-www-form-urlencoded, application/xml, text/plain
 - **Accept**: application/json, text/html
 
 [[Back to top]](#) [[Back to API list]](../../README.md#documentation-for-api-endpoints)
@@ -230,7 +232,7 @@ void (empty response body)
 
 ## postSelectedMultiple
 
-> string[] postSelectedMultiple($url, $selectors, $headers, $timeout, $js, $proxy)
+> string[] postSelectedMultiple($url, $selectors, $headers, $timeout, $js, $proxy, $request_body)
 
 HTML of multiple page areas by URL and CSS selectors, with POST request to the target page
 
@@ -255,15 +257,16 @@ $apiInstance = new OpenAPI\Client\Api\SelectedHTMLApi(
     new GuzzleHttp\Client(),
     $config
 );
-$url = https://example.com; // string | URL of the target page
+$url = https://httpbin.org/post; // string | URL of the target page
 $selectors = ["h1"]; // string[] | Multiple CSS selectors (null by default, returns whole page HTML)
 $headers = {"Cookie":"session=some_id"}; // map[string,string] | HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&headers[One]=value1&headers=[Another]=value2) or as a JSON encoded object (...&headers={\"One\": \"value1\", \"Another\": \"value2\"})
 $timeout = 5000; // int | Maximum processing time in ms. Increase it in case of timeout errors (5000 by default, maximum is 30000)
 $js = true; // bool | Execute on-page JavaScript using a headless browser (true by default), costs 2 requests
 $proxy = datacenter; // string | Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default)
+$request_body = array('key' => new \stdClass); // map[string,object] | Request body to pass to the target page
 
 try {
-    $result = $apiInstance->postSelectedMultiple($url, $selectors, $headers, $timeout, $js, $proxy);
+    $result = $apiInstance->postSelectedMultiple($url, $selectors, $headers, $timeout, $js, $proxy, $request_body);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling SelectedHTMLApi->postSelectedMultiple: ', $e->getMessage(), PHP_EOL;
@@ -282,6 +285,7 @@ Name | Type | Description  | Notes
  **timeout** | **int**| Maximum processing time in ms. Increase it in case of timeout errors (5000 by default, maximum is 30000) | [optional] [default to 5000]
  **js** | **bool**| Execute on-page JavaScript using a headless browser (true by default), costs 2 requests | [optional] [default to true]
  **proxy** | **string**| Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default) | [optional] [default to &#39;datacenter&#39;]
+ **request_body** | [**map[string,object]**](../Model/object.md)| Request body to pass to the target page | [optional]
 
 ### Return type
 
@@ -293,7 +297,7 @@ Name | Type | Description  | Notes
 
 ### HTTP request headers
 
-- **Content-Type**: Not defined
+- **Content-Type**: application/json, application/x-www-form-urlencoded, application/xml, text/plain
 - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../../README.md#documentation-for-api-endpoints)
