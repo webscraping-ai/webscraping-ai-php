@@ -13,7 +13,7 @@ Method | HTTP request | Description
 
 ## getSelected
 
-> getSelected($url, $selector, $headers, $timeout, $js, $proxy)
+> string getSelected($url, $selector, $headers, $timeout, $js, $proxy)
 
 HTML of a selected page area by URL and CSS selector
 
@@ -46,7 +46,8 @@ $js = true; // bool | Execute on-page JavaScript using a headless browser (true 
 $proxy = datacenter; // string | Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default)
 
 try {
-    $apiInstance->getSelected($url, $selector, $headers, $timeout, $js, $proxy);
+    $result = $apiInstance->getSelected($url, $selector, $headers, $timeout, $js, $proxy);
+    print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling SelectedHTMLApi->getSelected: ', $e->getMessage(), PHP_EOL;
 }
@@ -67,7 +68,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+**string**
 
 ### Authorization
 
@@ -158,7 +159,7 @@ Name | Type | Description  | Notes
 
 ## postSelected
 
-> postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body)
+> string postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body)
 
 HTML of a selected page areas by URL and CSS selector, with POST request to the target page
 
@@ -192,7 +193,8 @@ $proxy = datacenter; // string | Type of proxy, use residential proxies if your 
 $request_body = array('key' => new \stdClass); // map[string,object] | Request body to pass to the target page
 
 try {
-    $apiInstance->postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body);
+    $result = $apiInstance->postSelected($url, $selector, $headers, $timeout, $js, $proxy, $request_body);
+    print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling SelectedHTMLApi->postSelected: ', $e->getMessage(), PHP_EOL;
 }
@@ -214,7 +216,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+**string**
 
 ### Authorization
 

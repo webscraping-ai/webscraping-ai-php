@@ -11,7 +11,7 @@ Method | HTTP request | Description
 
 ## getHTML
 
-> getHTML($url, $headers, $timeout, $js, $proxy)
+> string getHTML($url, $headers, $timeout, $js, $proxy)
 
 Page HTML by URL
 
@@ -43,7 +43,8 @@ $js = true; // bool | Execute on-page JavaScript using a headless browser (true 
 $proxy = datacenter; // string | Type of proxy, use residential proxies if your site restricts traffic from datacenters (datacenter by default)
 
 try {
-    $apiInstance->getHTML($url, $headers, $timeout, $js, $proxy);
+    $result = $apiInstance->getHTML($url, $headers, $timeout, $js, $proxy);
+    print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling HTMLApi->getHTML: ', $e->getMessage(), PHP_EOL;
 }
@@ -63,7 +64,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+**string**
 
 ### Authorization
 
@@ -81,7 +82,7 @@ void (empty response body)
 
 ## postHTML
 
-> postHTML($url, $headers, $timeout, $js, $proxy, $request_body)
+> string postHTML($url, $headers, $timeout, $js, $proxy, $request_body)
 
 Page HTML by URL with POST request to the target page
 
@@ -114,7 +115,8 @@ $proxy = datacenter; // string | Type of proxy, use residential proxies if your 
 $request_body = array('key' => new \stdClass); // map[string,object] | Request body to pass to the target page
 
 try {
-    $apiInstance->postHTML($url, $headers, $timeout, $js, $proxy, $request_body);
+    $result = $apiInstance->postHTML($url, $headers, $timeout, $js, $proxy, $request_body);
+    print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling HTMLApi->postHTML: ', $e->getMessage(), PHP_EOL;
 }
@@ -135,7 +137,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+**string**
 
 ### Authorization
 
