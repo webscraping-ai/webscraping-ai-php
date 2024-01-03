@@ -1,7 +1,7 @@
 {
     "name": "webscraping-ai/webscraping-ai-php",
-    "version": "2.0.2",
-    "description": "A client for https://webscraping.ai API. It provides a web scaping automation API with Chrome JS rendering, rotating proxies and builtin HTML parsing.",
+    "version": "3.1.2",
+    "description": "WebScraping.AI scraping API provides GPT-powered tools with Chromium JavaScript rendering, rotating proxies, and built-in HTML parsing.",
     "keywords": [
         "openapitools",
         "openapi-generator",
@@ -15,26 +15,26 @@
     "license": "unlicense",
     "authors": [
         {
-            "name": "OpenAPI-Generator contributors",
+            "name": "OpenAPI",
             "homepage": "https://openapi-generator.tech"
         }
     ],
     "require": {
-        "php": ">=7.1",
+        "php": "^7.4 || ^8.0",
         "ext-curl": "*",
         "ext-json": "*",
         "ext-mbstring": "*",
-        "guzzlehttp/guzzle": "^6.2"
+        "guzzlehttp/guzzle": "^7.3",
+        "guzzlehttp/psr7": "^1.7 || ^2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^7.4",
-        "squizlabs/php_codesniffer": "~2.6",
-        "friendsofphp/php-cs-fixer": "~2.12"
+        "phpunit/phpunit": "^8.0 || ^9.0",
+        "friendsofphp/php-cs-fixer": "^3.5"
     },
     "autoload": {
         "psr-4": { "OpenAPI\\Client\\" : "lib/" }
     },
     "autoload-dev": {
-        "psr-4": { "OpenAPI\\Client\\" : "test/" }
+        "psr-4": { "OpenAPI\\Client\\Test\\" : "test/" }
     }
 }

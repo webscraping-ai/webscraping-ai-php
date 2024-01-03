@@ -1,6 +1,6 @@
 <?php
 /**
- * HTMLApi
+ * AIApi
  * PHP version 7.4
  *
  * @category Class
@@ -41,14 +41,14 @@ use OpenAPI\Client\HeaderSelector;
 use OpenAPI\Client\ObjectSerializer;
 
 /**
- * HTMLApi Class Doc Comment
+ * AIApi Class Doc Comment
  *
  * @category Class
  * @package  OpenAPI\Client
  * @author   OpenAPI Generator team
  * @link     https://openapi-generator.tech
  */
-class HTMLApi
+class AIApi
 {
     /**
      * @var ClientInterface
@@ -72,7 +72,7 @@ class HTMLApi
 
     /** @var string[] $contentTypes **/
     public const contentTypes = [
-        'getHTML' => [
+        'getQuestion' => [
             'application/json',
         ],
     ];
@@ -124,11 +124,15 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTML
+     * Operation getQuestion
      *
-     * Page HTML by URL
+     * Get an answer to a question about a given web page
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $question Question or instructions to ask the LLM model about the target page. (optional)
+     * @param  int $context_limit Maximum number of tokens to use as context for the LLM model (4000 by default). (optional, default to 8000)
+     * @param  int $response_tokens Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). (optional, default to 100)
+     * @param  string $on_context_limit What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. (optional, default to 'truncate')
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -139,25 +143,28 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getQuestion'] to see the possible values for this operation
      *
      * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|string
      */
-    public function getHTML($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getQuestion($url, $question = null, $context_limit = 8000, $response_tokens = 100, $on_context_limit = 'truncate', $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getQuestion'][0])
     {
-        list($response) = $this->getHTMLWithHttpInfo($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        list($response) = $this->getQuestionWithHttpInfo($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
         return $response;
     }
 
     /**
-     * Operation getHTMLWithHttpInfo
+     * Operation getQuestionWithHttpInfo
      *
-     * Page HTML by URL
+     * Get an answer to a question about a given web page
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $question Question or instructions to ask the LLM model about the target page. (optional)
+     * @param  int $context_limit Maximum number of tokens to use as context for the LLM model (4000 by default). (optional, default to 8000)
+     * @param  int $response_tokens Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). (optional, default to 100)
+     * @param  string $on_context_limit What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. (optional, default to 'truncate')
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -168,16 +175,15 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getQuestion'] to see the possible values for this operation
      *
      * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|string, HTTP status code, HTTP response headers (array of strings)
      */
-    public function getHTMLWithHttpInfo($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getQuestionWithHttpInfo($url, $question = null, $context_limit = 8000, $response_tokens = 100, $on_context_limit = 'truncate', $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getQuestion'][0])
     {
-        $request = $this->getHTMLRequest($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        $request = $this->getQuestionRequest($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -498,11 +504,15 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTMLAsync
+     * Operation getQuestionAsync
      *
-     * Page HTML by URL
+     * Get an answer to a question about a given web page
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $question Question or instructions to ask the LLM model about the target page. (optional)
+     * @param  int $context_limit Maximum number of tokens to use as context for the LLM model (4000 by default). (optional, default to 8000)
+     * @param  int $response_tokens Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). (optional, default to 100)
+     * @param  string $on_context_limit What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. (optional, default to 'truncate')
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -513,15 +523,14 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getQuestion'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getHTMLAsync($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getQuestionAsync($url, $question = null, $context_limit = 8000, $response_tokens = 100, $on_context_limit = 'truncate', $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getQuestion'][0])
     {
-        return $this->getHTMLAsyncWithHttpInfo($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType)
+        return $this->getQuestionAsyncWithHttpInfo($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -530,11 +539,15 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTMLAsyncWithHttpInfo
+     * Operation getQuestionAsyncWithHttpInfo
      *
-     * Page HTML by URL
+     * Get an answer to a question about a given web page
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $question Question or instructions to ask the LLM model about the target page. (optional)
+     * @param  int $context_limit Maximum number of tokens to use as context for the LLM model (4000 by default). (optional, default to 8000)
+     * @param  int $response_tokens Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). (optional, default to 100)
+     * @param  string $on_context_limit What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. (optional, default to 'truncate')
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -545,16 +558,15 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getQuestion'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getHTMLAsyncWithHttpInfo($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getQuestionAsyncWithHttpInfo($url, $question = null, $context_limit = 8000, $response_tokens = 100, $on_context_limit = 'truncate', $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getQuestion'][0])
     {
         $returnType = 'string';
-        $request = $this->getHTMLRequest($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        $request = $this->getQuestionRequest($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -593,9 +605,13 @@ class HTMLApi
     }
 
     /**
-     * Create request for operation 'getHTML'
+     * Create request for operation 'getQuestion'
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $question Question or instructions to ask the LLM model about the target page. (optional)
+     * @param  int $context_limit Maximum number of tokens to use as context for the LLM model (4000 by default). (optional, default to 8000)
+     * @param  int $response_tokens Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). (optional, default to 100)
+     * @param  string $on_context_limit What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. (optional, default to 'truncate')
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -606,36 +622,39 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getQuestion'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function getHTMLRequest($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getQuestionRequest($url, $question = null, $context_limit = 8000, $response_tokens = 100, $on_context_limit = 'truncate', $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getQuestion'][0])
     {
 
         // verify the required parameter 'url' is set
         if ($url === null || (is_array($url) && count($url) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $url when calling getHTML'
+                'Missing the required parameter $url when calling getQuestion'
             );
         }
 
 
+
+
+
+
         if ($timeout !== null && $timeout > 30000) {
-            throw new \InvalidArgumentException('invalid value for "$timeout" when calling HTMLApi.getHTML, must be smaller than or equal to 30000.');
+            throw new \InvalidArgumentException('invalid value for "$timeout" when calling AIApi.getQuestion, must be smaller than or equal to 30000.');
         }
         if ($timeout !== null && $timeout < 1) {
-            throw new \InvalidArgumentException('invalid value for "$timeout" when calling HTMLApi.getHTML, must be bigger than or equal to 1.');
+            throw new \InvalidArgumentException('invalid value for "$timeout" when calling AIApi.getQuestion, must be bigger than or equal to 1.');
         }
         
 
         if ($js_timeout !== null && $js_timeout > 20000) {
-            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling HTMLApi.getHTML, must be smaller than or equal to 20000.');
+            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling AIApi.getQuestion, must be smaller than or equal to 20000.');
         }
         if ($js_timeout !== null && $js_timeout < 1) {
-            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling HTMLApi.getHTML, must be bigger than or equal to 1.');
+            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling AIApi.getQuestion, must be bigger than or equal to 1.');
         }
         
 
@@ -645,8 +664,7 @@ class HTMLApi
 
 
 
-
-        $resourcePath = '/html';
+        $resourcePath = '/ai/question';
         $formParams = [];
         $queryParams = [];
         $headerParams = [];
@@ -661,6 +679,42 @@ class HTMLApi
             'form', // style
             true, // explode
             true // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $question,
+            'question', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $context_limit,
+            'context_limit', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $response_tokens,
+            'response_tokens', // param base name
+            'integer', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $on_context_limit,
+            'on_context_limit', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
         ) ?? []);
         // query params
         $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
@@ -748,15 +802,6 @@ class HTMLApi
             $js_script,
             'js_script', // param base name
             'string', // openApiType
-            'form', // style
-            true, // explode
-            false // required
-        ) ?? []);
-        // query params
-        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
-            $return_script_result,
-            'return_script_result', // param base name
-            'boolean', // openApiType
             'form', // style
             true, // explode
             false // required

@@ -1,6 +1,6 @@
 <?php
 /**
- * HTMLApi
+ * TextApi
  * PHP version 7.4
  *
  * @category Class
@@ -41,14 +41,14 @@ use OpenAPI\Client\HeaderSelector;
 use OpenAPI\Client\ObjectSerializer;
 
 /**
- * HTMLApi Class Doc Comment
+ * TextApi Class Doc Comment
  *
  * @category Class
  * @package  OpenAPI\Client
  * @author   OpenAPI Generator team
  * @link     https://openapi-generator.tech
  */
-class HTMLApi
+class TextApi
 {
     /**
      * @var ClientInterface
@@ -72,7 +72,7 @@ class HTMLApi
 
     /** @var string[] $contentTypes **/
     public const contentTypes = [
-        'getHTML' => [
+        'getText' => [
             'application/json',
         ],
     ];
@@ -124,11 +124,13 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTML
+     * Operation getText
      *
-     * Page HTML by URL
+     * Page text by URL
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $text_format Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. (optional, default to 'plain')
+     * @param  bool $return_links [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. (optional, default to false)
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -139,25 +141,26 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getText'] to see the possible values for this operation
      *
      * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|string
      */
-    public function getHTML($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getText($url, $text_format = 'plain', $return_links = false, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getText'][0])
     {
-        list($response) = $this->getHTMLWithHttpInfo($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        list($response) = $this->getTextWithHttpInfo($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
         return $response;
     }
 
     /**
-     * Operation getHTMLWithHttpInfo
+     * Operation getTextWithHttpInfo
      *
-     * Page HTML by URL
+     * Page text by URL
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $text_format Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. (optional, default to 'plain')
+     * @param  bool $return_links [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. (optional, default to false)
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -168,16 +171,15 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getText'] to see the possible values for this operation
      *
      * @throws \OpenAPI\Client\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|\OpenAPI\Client\Model\Error|string, HTTP status code, HTTP response headers (array of strings)
      */
-    public function getHTMLWithHttpInfo($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getTextWithHttpInfo($url, $text_format = 'plain', $return_links = false, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getText'][0])
     {
-        $request = $this->getHTMLRequest($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        $request = $this->getTextRequest($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -498,11 +500,13 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTMLAsync
+     * Operation getTextAsync
      *
-     * Page HTML by URL
+     * Page text by URL
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $text_format Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. (optional, default to 'plain')
+     * @param  bool $return_links [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. (optional, default to false)
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -513,15 +517,14 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getText'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getHTMLAsync($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getTextAsync($url, $text_format = 'plain', $return_links = false, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getText'][0])
     {
-        return $this->getHTMLAsyncWithHttpInfo($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType)
+        return $this->getTextAsyncWithHttpInfo($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -530,11 +533,13 @@ class HTMLApi
     }
 
     /**
-     * Operation getHTMLAsyncWithHttpInfo
+     * Operation getTextAsyncWithHttpInfo
      *
-     * Page HTML by URL
+     * Page text by URL
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $text_format Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. (optional, default to 'plain')
+     * @param  bool $return_links [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. (optional, default to false)
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -545,16 +550,15 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getText'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function getHTMLAsyncWithHttpInfo($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getTextAsyncWithHttpInfo($url, $text_format = 'plain', $return_links = false, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getText'][0])
     {
         $returnType = 'string';
-        $request = $this->getHTMLRequest($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result, $contentType);
+        $request = $this->getTextRequest($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -593,9 +597,11 @@ class HTMLApi
     }
 
     /**
-     * Create request for operation 'getHTML'
+     * Create request for operation 'getText'
      *
      * @param  string $url URL of the target page. (required)
+     * @param  string $text_format Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. (optional, default to 'plain')
+     * @param  bool $return_links [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. (optional, default to false)
      * @param  array<string,string> $headers HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). (optional)
      * @param  int $timeout Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). (optional, default to 10000)
      * @param  bool $js Execute on-page JavaScript using a headless browser (true by default). (optional, default to true)
@@ -606,36 +612,37 @@ class HTMLApi
      * @param  bool $error_on_404 Return error on 404 HTTP status on the target page (false by default). (optional, default to false)
      * @param  bool $error_on_redirect Return error on redirect on the target page (false by default). (optional, default to false)
      * @param  string $js_script Custom JavaScript code to execute on the target page. (optional)
-     * @param  bool $return_script_result Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). (optional, default to false)
-     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getHTML'] to see the possible values for this operation
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getText'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function getHTMLRequest($url, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, $return_script_result = false, string $contentType = self::contentTypes['getHTML'][0])
+    public function getTextRequest($url, $text_format = 'plain', $return_links = false, $headers = null, $timeout = 10000, $js = true, $js_timeout = 2000, $proxy = 'datacenter', $country = 'us', $device = 'desktop', $error_on_404 = false, $error_on_redirect = false, $js_script = null, string $contentType = self::contentTypes['getText'][0])
     {
 
         // verify the required parameter 'url' is set
         if ($url === null || (is_array($url) && count($url) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $url when calling getHTML'
+                'Missing the required parameter $url when calling getText'
             );
         }
 
 
+
+
         if ($timeout !== null && $timeout > 30000) {
-            throw new \InvalidArgumentException('invalid value for "$timeout" when calling HTMLApi.getHTML, must be smaller than or equal to 30000.');
+            throw new \InvalidArgumentException('invalid value for "$timeout" when calling TextApi.getText, must be smaller than or equal to 30000.');
         }
         if ($timeout !== null && $timeout < 1) {
-            throw new \InvalidArgumentException('invalid value for "$timeout" when calling HTMLApi.getHTML, must be bigger than or equal to 1.');
+            throw new \InvalidArgumentException('invalid value for "$timeout" when calling TextApi.getText, must be bigger than or equal to 1.');
         }
         
 
         if ($js_timeout !== null && $js_timeout > 20000) {
-            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling HTMLApi.getHTML, must be smaller than or equal to 20000.');
+            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling TextApi.getText, must be smaller than or equal to 20000.');
         }
         if ($js_timeout !== null && $js_timeout < 1) {
-            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling HTMLApi.getHTML, must be bigger than or equal to 1.');
+            throw new \InvalidArgumentException('invalid value for "$js_timeout" when calling TextApi.getText, must be bigger than or equal to 1.');
         }
         
 
@@ -645,14 +652,31 @@ class HTMLApi
 
 
 
-
-        $resourcePath = '/html';
+        $resourcePath = '/text';
         $formParams = [];
         $queryParams = [];
         $headerParams = [];
         $httpBody = '';
         $multipart = false;
 
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $text_format,
+            'text_format', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $return_links,
+            'return_links', // param base name
+            'boolean', // openApiType
+            'form', // style
+            true, // explode
+            false // required
+        ) ?? []);
         // query params
         $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
             $url,
@@ -752,21 +776,12 @@ class HTMLApi
             true, // explode
             false // required
         ) ?? []);
-        // query params
-        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
-            $return_script_result,
-            'return_script_result', // param base name
-            'boolean', // openApiType
-            'form', // style
-            true, // explode
-            false // required
-        ) ?? []);
 
 
 
 
         $headers = $this->headerSelector->selectHeaders(
-            ['application/json', 'text/html', ],
+            ['application/json', 'text/html', 'text/xml', ],
             $contentType,
             $multipart
         );

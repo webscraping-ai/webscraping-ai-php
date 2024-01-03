@@ -1,21 +1,21 @@
-# OpenAPI\Client\HTMLApi
+# OpenAPI\Client\TextApi
 
 All URIs are relative to https://api.webscraping.ai, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
 | ------------- | ------------- | ------------- |
-| [**getHTML()**](HTMLApi.md#getHTML) | **GET** /html | Page HTML by URL |
+| [**getText()**](TextApi.md#getText) | **GET** /text | Page text by URL |
 
 
-## `getHTML()`
+## `getText()`
 
 ```php
-getHTML($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result): string
+getText($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script): string
 ```
 
-Page HTML by URL
+Page text by URL
 
-Returns the full HTML content of a webpage specified by the URL. The response is in plain text. Proxies and Chromium JavaScript rendering are used for page retrieval and processing.
+Returns the visible text content of a webpage specified by the URL. Can be used to feed data to GPT or other LLM models. The response can be in plain text, JSON, or XML format based on the text_format parameter. Proxies and Chromium JavaScript rendering are used for page retrieval and processing. Returns JSON on error.
 
 ### Example
 
@@ -30,13 +30,15 @@ $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKey('ap
 // $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKeyPrefix('api_key', 'Bearer');
 
 
-$apiInstance = new OpenAPI\Client\Api\HTMLApi(
+$apiInstance = new OpenAPI\Client\Api\TextApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $url = https://example.com; // string | URL of the target page.
+$text_format = plain; // string | Format of the text response (plain by default). \"plain\" will return only the page body text. \"json\" and \"xml\" will return a json/xml with \"title\", \"description\" and \"content\" keys.
+$return_links = false; // bool | [Works only with text_format=json] Return links from the page body text (false by default). Useful for building web crawlers.
 $headers = {"Cookie":"session=some_id"}; // array<string,string> | HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&headers[One]=value1&headers=[Another]=value2) or as a JSON encoded object (...&headers={\"One\": \"value1\", \"Another\": \"value2\"}).
 $timeout = 10000; // int | Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000).
 $js = true; // bool | Execute on-page JavaScript using a headless browser (true by default).
@@ -47,13 +49,12 @@ $device = desktop; // string | Type of device emulation.
 $error_on_404 = false; // bool | Return error on 404 HTTP status on the target page (false by default).
 $error_on_redirect = false; // bool | Return error on redirect on the target page (false by default).
 $js_script = document.querySelector('button').click();; // string | Custom JavaScript code to execute on the target page.
-$return_script_result = false; // bool | Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned).
 
 try {
-    $result = $apiInstance->getHTML($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result);
+    $result = $apiInstance->getText($url, $text_format, $return_links, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script);
     print_r($result);
 } catch (Exception $e) {
-    echo 'Exception when calling HTMLApi->getHTML: ', $e->getMessage(), PHP_EOL;
+    echo 'Exception when calling TextApi->getText: ', $e->getMessage(), PHP_EOL;
 }
 ```
 
@@ -62,6 +63,8 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **url** | **string**| URL of the target page. | |
+| **text_format** | **string**| Format of the text response (plain by default). \&quot;plain\&quot; will return only the page body text. \&quot;json\&quot; and \&quot;xml\&quot; will return a json/xml with \&quot;title\&quot;, \&quot;description\&quot; and \&quot;content\&quot; keys. | [optional] [default to &#39;plain&#39;] |
+| **return_links** | **bool**| [Works only with text_format&#x3D;json] Return links from the page body text (false by default). Useful for building web crawlers. | [optional] [default to false] |
 | **headers** | [**array<string,string>**](../Model/string.md)| HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). | [optional] |
 | **timeout** | **int**| Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). | [optional] [default to 10000] |
 | **js** | **bool**| Execute on-page JavaScript using a headless browser (true by default). | [optional] [default to true] |
@@ -72,7 +75,6 @@ try {
 | **error_on_404** | **bool**| Return error on 404 HTTP status on the target page (false by default). | [optional] [default to false] |
 | **error_on_redirect** | **bool**| Return error on redirect on the target page (false by default). | [optional] [default to false] |
 | **js_script** | **string**| Custom JavaScript code to execute on the target page. | [optional] |
-| **return_script_result** | **bool**| Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). | [optional] [default to false] |
 
 ### Return type
 
@@ -85,7 +87,7 @@ try {
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`, `text/html`
+- **Accept**: `application/json`, `text/html`, `text/xml`
 
 [[Back to top]](#) [[Back to API list]](../../README.md#endpoints)
 [[Back to Model list]](../../README.md#models)

@@ -1,21 +1,21 @@
-# OpenAPI\Client\HTMLApi
+# OpenAPI\Client\AIApi
 
 All URIs are relative to https://api.webscraping.ai, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
 | ------------- | ------------- | ------------- |
-| [**getHTML()**](HTMLApi.md#getHTML) | **GET** /html | Page HTML by URL |
+| [**getQuestion()**](AIApi.md#getQuestion) | **GET** /ai/question | Get an answer to a question about a given web page |
 
 
-## `getHTML()`
+## `getQuestion()`
 
 ```php
-getHTML($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result): string
+getQuestion($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script): string
 ```
 
-Page HTML by URL
+Get an answer to a question about a given web page
 
-Returns the full HTML content of a webpage specified by the URL. The response is in plain text. Proxies and Chromium JavaScript rendering are used for page retrieval and processing.
+Returns the answer in plain text. Proxies and Chromium JavaScript rendering are used for page retrieval and processing, then the answer is extracted using an LLM model.
 
 ### Example
 
@@ -30,13 +30,17 @@ $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKey('ap
 // $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKeyPrefix('api_key', 'Bearer');
 
 
-$apiInstance = new OpenAPI\Client\Api\HTMLApi(
+$apiInstance = new OpenAPI\Client\Api\AIApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
 $url = https://example.com; // string | URL of the target page.
+$question = What is the summary of this page content?; // string | Question or instructions to ask the LLM model about the target page.
+$context_limit = 4000; // int | Maximum number of tokens to use as context for the LLM model (4000 by default).
+$response_tokens = 100; // int | Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit).
+$on_context_limit = truncate; // string | What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long.
 $headers = {"Cookie":"session=some_id"}; // array<string,string> | HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&headers[One]=value1&headers=[Another]=value2) or as a JSON encoded object (...&headers={\"One\": \"value1\", \"Another\": \"value2\"}).
 $timeout = 10000; // int | Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000).
 $js = true; // bool | Execute on-page JavaScript using a headless browser (true by default).
@@ -47,13 +51,12 @@ $device = desktop; // string | Type of device emulation.
 $error_on_404 = false; // bool | Return error on 404 HTTP status on the target page (false by default).
 $error_on_redirect = false; // bool | Return error on redirect on the target page (false by default).
 $js_script = document.querySelector('button').click();; // string | Custom JavaScript code to execute on the target page.
-$return_script_result = false; // bool | Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned).
 
 try {
-    $result = $apiInstance->getHTML($url, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script, $return_script_result);
+    $result = $apiInstance->getQuestion($url, $question, $context_limit, $response_tokens, $on_context_limit, $headers, $timeout, $js, $js_timeout, $proxy, $country, $device, $error_on_404, $error_on_redirect, $js_script);
     print_r($result);
 } catch (Exception $e) {
-    echo 'Exception when calling HTMLApi->getHTML: ', $e->getMessage(), PHP_EOL;
+    echo 'Exception when calling AIApi->getQuestion: ', $e->getMessage(), PHP_EOL;
 }
 ```
 
@@ -62,6 +65,10 @@ try {
 | Name | Type | Description  | Notes |
 | ------------- | ------------- | ------------- | ------------- |
 | **url** | **string**| URL of the target page. | |
+| **question** | **string**| Question or instructions to ask the LLM model about the target page. | [optional] |
+| **context_limit** | **int**| Maximum number of tokens to use as context for the LLM model (4000 by default). | [optional] [default to 8000] |
+| **response_tokens** | **int**| Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). | [optional] [default to 100] |
+| **on_context_limit** | **string**| What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. | [optional] [default to &#39;truncate&#39;] |
 | **headers** | [**array<string,string>**](../Model/string.md)| HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). | [optional] |
 | **timeout** | **int**| Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). | [optional] [default to 10000] |
 | **js** | **bool**| Execute on-page JavaScript using a headless browser (true by default). | [optional] [default to true] |
@@ -72,7 +79,6 @@ try {
 | **error_on_404** | **bool**| Return error on 404 HTTP status on the target page (false by default). | [optional] [default to false] |
 | **error_on_redirect** | **bool**| Return error on redirect on the target page (false by default). | [optional] [default to false] |
 | **js_script** | **string**| Custom JavaScript code to execute on the target page. | [optional] |
-| **return_script_result** | **bool**| Return result of the custom JavaScript code (js_script parameter) execution on the target page (false by default, page HTML will be returned). | [optional] [default to false] |
 
 ### Return type
 

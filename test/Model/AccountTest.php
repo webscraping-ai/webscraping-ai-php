@@ -1,6 +1,6 @@
 <?php
 /**
- * ErrorTest
+ * AccountTest
  *
  * PHP version 7.4
  *
@@ -32,15 +32,15 @@ namespace OpenAPI\Client\Test\Model;
 use PHPUnit\Framework\TestCase;
 
 /**
- * ErrorTest Class Doc Comment
+ * AccountTest Class Doc Comment
  *
  * @category    Class
- * @description Error
+ * @description Account
  * @package     OpenAPI\Client
  * @author      OpenAPI Generator team
  * @link        https://openapi-generator.tech
  */
-class ErrorTest extends TestCase
+class AccountTest extends TestCase
 {
 
     /**
@@ -72,45 +72,36 @@ class ErrorTest extends TestCase
     }
 
     /**
-     * Test "Error"
+     * Test "Account"
      */
-    public function testError()
+    public function testAccount()
     {
         // TODO: implement
         $this->markTestIncomplete('Not implemented');
     }
 
     /**
-     * Test attribute "message"
+     * Test attribute "remaining_api_calls"
      */
-    public function testPropertyMessage()
+    public function testPropertyRemainingApiCalls()
     {
         // TODO: implement
         $this->markTestIncomplete('Not implemented');
     }
 
     /**
-     * Test attribute "status_code"
+     * Test attribute "resets_at"
      */
-    public function testPropertyStatusCode()
+    public function testPropertyResetsAt()
     {
         // TODO: implement
         $this->markTestIncomplete('Not implemented');
     }
 
     /**
-     * Test attribute "status_message"
+     * Test attribute "remaining_concurrency"
      */
-    public function testPropertyStatusMessage()
-    {
-        // TODO: implement
-        $this->markTestIncomplete('Not implemented');
-    }
-
-    /**
-     * Test attribute "body"
-     */
-    public function testPropertyBody()
+    public function testPropertyRemainingConcurrency()
     {
         // TODO: implement
         $this->markTestIncomplete('Not implemented');

@@ -1,6 +1,6 @@
 <?php
 /**
- * Error
+ * Account
  *
  * PHP version 7.4
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \OpenAPI\Client\ObjectSerializer;
 
 /**
- * Error Class Doc Comment
+ * Account Class Doc Comment
  *
  * @category Class
  * @package  OpenAPI\Client
@@ -41,7 +41,7 @@ use \OpenAPI\Client\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class Error implements ModelInterface, ArrayAccess, \JsonSerializable
+class Account implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
       *
       * @var string
       */
-    protected static $openAPIModelName = 'Error';
+    protected static $openAPIModelName = 'Account';
 
     /**
       * Array of property to type mappings. Used for (de)serialization
@@ -58,10 +58,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
       * @var string[]
       */
     protected static $openAPITypes = [
-        'message' => 'string',
-        'status_code' => 'int',
-        'status_message' => 'string',
-        'body' => 'string'
+        'remaining_api_calls' => 'int',
+        'resets_at' => 'int',
+        'remaining_concurrency' => 'int'
     ];
 
     /**
@@ -72,10 +71,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
       * @psalm-var array<string, string|null>
       */
     protected static $openAPIFormats = [
-        'message' => null,
-        'status_code' => null,
-        'status_message' => null,
-        'body' => null
+        'remaining_api_calls' => null,
+        'resets_at' => null,
+        'remaining_concurrency' => null
     ];
 
     /**
@@ -84,10 +82,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
       * @var boolean[]
       */
     protected static array $openAPINullables = [
-        'message' => false,
-        'status_code' => false,
-        'status_message' => false,
-        'body' => false
+        'remaining_api_calls' => false,
+        'resets_at' => false,
+        'remaining_concurrency' => false
     ];
 
     /**
@@ -176,10 +173,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
      * @var string[]
      */
     protected static $attributeMap = [
-        'message' => 'message',
-        'status_code' => 'status_code',
-        'status_message' => 'status_message',
-        'body' => 'body'
+        'remaining_api_calls' => 'remaining_api_calls',
+        'resets_at' => 'resets_at',
+        'remaining_concurrency' => 'remaining_concurrency'
     ];
 
     /**
@@ -188,10 +184,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
      * @var string[]
      */
     protected static $setters = [
-        'message' => 'setMessage',
-        'status_code' => 'setStatusCode',
-        'status_message' => 'setStatusMessage',
-        'body' => 'setBody'
+        'remaining_api_calls' => 'setRemainingApiCalls',
+        'resets_at' => 'setResetsAt',
+        'remaining_concurrency' => 'setRemainingConcurrency'
     ];
 
     /**
@@ -200,10 +195,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
      * @var string[]
      */
     protected static $getters = [
-        'message' => 'getMessage',
-        'status_code' => 'getStatusCode',
-        'status_message' => 'getStatusMessage',
-        'body' => 'getBody'
+        'remaining_api_calls' => 'getRemainingApiCalls',
+        'resets_at' => 'getResetsAt',
+        'remaining_concurrency' => 'getRemainingConcurrency'
     ];
 
     /**
@@ -263,10 +257,9 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
      */
     public function __construct(array $data = null)
     {
-        $this->setIfExists('message', $data ?? [], null);
-        $this->setIfExists('status_code', $data ?? [], null);
-        $this->setIfExists('status_message', $data ?? [], null);
-        $this->setIfExists('body', $data ?? [], null);
+        $this->setIfExists('remaining_api_calls', $data ?? [], null);
+        $this->setIfExists('resets_at', $data ?? [], null);
+        $this->setIfExists('remaining_concurrency', $data ?? [], null);
     }
 
     /**
@@ -312,109 +305,82 @@ class Error implements ModelInterface, ArrayAccess, \JsonSerializable
 
 
     /**
-     * Gets message
-     *
-     * @return string|null
-     */
-    public function getMessage()
-    {
-        return $this->container['message'];
-    }
-
-    /**
-     * Sets message
-     *
-     * @param string|null $message Error description
-     *
-     * @return self
-     */
-    public function setMessage($message)
-    {
-        if (is_null($message)) {
-            throw new \InvalidArgumentException('non-nullable message cannot be null');
-        }
-        $this->container['message'] = $message;
-
-        return $this;
-    }
-
-    /**
-     * Gets status_code
+     * Gets remaining_api_calls
      *
      * @return int|null
      */
-    public function getStatusCode()
+    public function getRemainingApiCalls()
     {
-        return $this->container['status_code'];
+        return $this->container['remaining_api_calls'];
     }
 
     /**
-     * Sets status_code
+     * Sets remaining_api_calls
      *
-     * @param int|null $status_code Target page response HTTP status code (403, 500, etc)
+     * @param int|null $remaining_api_calls Remaining API credits quota
      *
      * @return self
      */
-    public function setStatusCode($status_code)
+    public function setRemainingApiCalls($remaining_api_calls)
     {
-        if (is_null($status_code)) {
-            throw new \InvalidArgumentException('non-nullable status_code cannot be null');
+        if (is_null($remaining_api_calls)) {
+            throw new \InvalidArgumentException('non-nullable remaining_api_calls cannot be null');
         }
-        $this->container['status_code'] = $status_code;
+        $this->container['remaining_api_calls'] = $remaining_api_calls;
 
         return $this;
     }
 
     /**
-     * Gets status_message
+     * Gets resets_at
      *
-     * @return string|null
+     * @return int|null
      */
-    public function getStatusMessage()
+    public function getResetsAt()
     {
-        return $this->container['status_message'];
+        return $this->container['resets_at'];
     }
 
     /**
-     * Sets status_message
+     * Sets resets_at
      *
-     * @param string|null $status_message Target page response HTTP status message
+     * @param int|null $resets_at Next billing cycle start time (UNIX timestamp)
      *
      * @return self
      */
-    public function setStatusMessage($status_message)
+    public function setResetsAt($resets_at)
     {
-        if (is_null($status_message)) {
-            throw new \InvalidArgumentException('non-nullable status_message cannot be null');
+        if (is_null($resets_at)) {
+            throw new \InvalidArgumentException('non-nullable resets_at cannot be null');
         }
-        $this->container['status_message'] = $status_message;
+        $this->container['resets_at'] = $resets_at;
 
         return $this;
     }
 
     /**
-     * Gets body
+     * Gets remaining_concurrency
      *
-     * @return string|null
+     * @return int|null
      */
-    public function getBody()
+    public function getRemainingConcurrency()
     {
-        return $this->container['body'];
+        return $this->container['remaining_concurrency'];
     }
 
     /**
-     * Sets body
+     * Sets remaining_concurrency
      *
-     * @param string|null $body Target page response body
+     * @param int|null $remaining_concurrency Remaining concurrent requests
      *
      * @return self
      */
-    public function setBody($body)
+    public function setRemainingConcurrency($remaining_concurrency)
     {
-        if (is_null($body)) {
-            throw new \InvalidArgumentException('non-nullable body cannot be null');
+        if (is_null($remaining_concurrency)) {
+            throw new \InvalidArgumentException('non-nullable remaining_concurrency cannot be null');
         }
-        $this->container['body'] = $body;
+        $this->container['remaining_concurrency'] = $remaining_concurrency;
 
         return $this;
     }
