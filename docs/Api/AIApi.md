@@ -66,9 +66,9 @@ try {
 | ------------- | ------------- | ------------- | ------------- |
 | **url** | **string**| URL of the target page. | |
 | **question** | **string**| Question or instructions to ask the LLM model about the target page. | [optional] |
-| **context_limit** | **int**| Maximum number of tokens to use as context for the LLM model (4000 by default). | [optional] [default to 8000] |
+| **context_limit** | **int**| Maximum number of tokens to use as context for the LLM model (4000 by default). | [optional] [default to 4000] |
 | **response_tokens** | **int**| Maximum number of tokens to return in the LLM model response. The total context size (context_limit) includes the question, the target page content and the response, so this parameter reserves tokens for the response (see also on_context_limit). | [optional] [default to 100] |
-| **on_context_limit** | **string**| What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. | [optional] [default to &#39;truncate&#39;] |
+| **on_context_limit** | **string**| What to do if the context_limit parameter is exceeded (truncate by default). The context is exceeded when the target page content is too long. | [optional] [default to &#39;error&#39;] |
 | **headers** | [**array<string,string>**](../Model/string.md)| HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&amp;headers[One]&#x3D;value1&amp;headers&#x3D;[Another]&#x3D;value2) or as a JSON encoded object (...&amp;headers&#x3D;{\&quot;One\&quot;: \&quot;value1\&quot;, \&quot;Another\&quot;: \&quot;value2\&quot;}). | [optional] |
 | **timeout** | **int**| Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000). | [optional] [default to 10000] |
 | **js** | **bool**| Execute on-page JavaScript using a headless browser (true by default). | [optional] [default to true] |

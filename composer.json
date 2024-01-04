@@ -1,6 +1,6 @@
 {
     "name": "webscraping-ai/webscraping-ai-php",
-    "version": "3.1.2",
+    "version": "3.1.3",
     "description": "WebScraping.AI scraping API provides GPT-powered tools with Chromium JavaScript rendering, rotating proxies, and built-in HTML parsing.",
     "keywords": [
         "openapitools",
