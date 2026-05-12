@@ -13,6 +13,7 @@ docs/Model/Error.md
 git_push.sh
 lib/ApiException.php
 lib/Configuration.php
+lib/FormDataProcessor.php
 lib/HeaderSelector.php
 lib/Model/Account.php
 lib/Model/Error.php

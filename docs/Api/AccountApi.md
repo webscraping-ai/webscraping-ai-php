@@ -1,5 +1,7 @@
 # OpenAPI\Client\AccountApi
 
+Information about your account API credits quota
+
 All URIs are relative to https://api.webscraping.ai, except if the operation defines another base path.
 
 | Method | HTTP request | Description |
