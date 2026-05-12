@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="./vendor/autoload.php" colors="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" stopOnFailure="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
-  <coverage processUncoveredFiles="true">
-    <include>
-      <directory suffix=".php">./lib/webscraping_ai</directory>
-      <directory suffix=".php">./lib/Model</directory>
-    </include>
-  </coverage>
-  <testsuites>
-    <testsuite name="tests">
-      <directory>./test/Api</directory>
-      <directory>./test/Model</directory>
-    </testsuite>
-  </testsuites>
-  <php>
-    <ini name="error_reporting" value="E_ALL"/>
-  </php>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="WebScrapingAI">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
 </phpunit>

@@ -1,137 +1,136 @@
-# WebScrapingAI
+# WebScraping.AI PHP Client
 
-WebScraping.AI scraping API provides LLM-powered tools with Chromium JavaScript rendering, rotating proxies, and built-in HTML parsing.
+[![Packagist Version](https://img.shields.io/packagist/v/webscraping-ai/webscraping-ai-php.svg)](https://packagist.org/packages/webscraping-ai/webscraping-ai-php)
+[![CI](https://github.com/webscraping-ai/webscraping-ai-php/actions/workflows/ci.yml/badge.svg)](https://github.com/webscraping-ai/webscraping-ai-php/actions/workflows/ci.yml)
 
-For more information, please visit [https://webscraping.ai](https://webscraping.ai).
+Official PHP client for the [WebScraping.AI](https://webscraping.ai) API.
 
-## Installation & Usage
+The API gives you LLM-powered scraping tools with Chromium JavaScript rendering, rotating proxies, and built-in HTML parsing — full HTML, visible text, selected page areas, AI-extracted fields, and free-form question answering over any URL.
 
-### Requirements
+## Requirements
 
-PHP 8.1 and later.
+- PHP 8.2 or newer
+- A [PSR-18 HTTP client](https://packagist.org/providers/psr/http-client-implementation) — Guzzle, Symfony HttpClient, or any other implementation
+- A [PSR-17 message factory](https://packagist.org/providers/psr/http-factory-implementation)
 
-### Composer
+If you don't already have these installed, the simplest pair is:
 
-To install the bindings via [Composer](https://getcomposer.org/), add the following to `composer.json`:
-
-```json
-{
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/webscraping-ai/webscraping-ai-php.git"
-    }
-  ],
-  "require": {
-    "webscraping-ai/webscraping-ai-php": "*@dev"
-  }
-}
+```bash
+composer require guzzlehttp/guzzle nyholm/psr7
 ```
 
-Then run `composer install`
+`php-http/discovery` (a transitive dependency) will pick them up automatically.
 
-### Manual Installation
+## Installation
 
-Download the files and include `autoload.php`:
-
-```php
-<?php
-require_once('/path/to/WebScrapingAI/vendor/autoload.php');
+```bash
+composer require webscraping-ai/webscraping-ai-php
 ```
 
-## Getting Started
-
-Please follow the [installation procedure](#installation--usage) and then run the following:
+## Quick start
 
 ```php
-<?php
-require_once(__DIR__ . '/vendor/autoload.php');
+use WebScrapingAI\Client;
 
+$client = new Client(apiKey: getenv('WEBSCRAPING_AI_KEY'));
 
+// Full HTML
+$html = $client->html(url: 'https://example.com');
 
-// Configure API key authorization: api_key
-$config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKey('api_key', 'YOUR_API_KEY');
-// Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-// $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setApiKeyPrefix('api_key', 'Bearer');
+// Visible text
+$text = $client->text(url: 'https://example.com');
 
+// HTML for one selector
+$h1 = $client->selected(url: 'https://example.com', selector: 'h1');
 
-$apiInstance = new OpenAPI\Client\Api\AIApi(
-    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
-    // This is optional, `GuzzleHttp\Client` will be used as default.
-    new GuzzleHttp\Client(),
-    $config
+// HTML for multiple selectors (returns array)
+$chunks = $client->selectedMultiple(
+    url: 'https://example.com',
+    selectors: ['h1', 'p', 'a'],
 );
-$url = https://example.com; // string | URL of the target page.
-$fields = {"title":"Main product title","price":"Current product price","description":"Full product description"}; // array<string,string> | Object describing fields to extract from the page and their descriptions
-$headers = {"Cookie":"session=some_id"}; // array<string,string> | HTTP headers to pass to the target page. Can be specified either via a nested query parameter (...&headers[One]=value1&headers=[Another]=value2) or as a JSON encoded object (...&headers={\"One\": \"value1\", \"Another\": \"value2\"}).
-$timeout = 10000; // int | Maximum web page retrieval time in ms. Increase it in case of timeout errors (10000 by default, maximum is 30000).
-$js = true; // bool | Execute on-page JavaScript using a headless browser (true by default).
-$js_timeout = 2000; // int | Maximum JavaScript rendering time in ms. Increase it in case if you see a loading indicator instead of data on the target page.
-$wait_for = 'wait_for_example'; // string | CSS selector to wait for before returning the page content. Useful for pages with dynamic content loading. Overrides js_timeout.
-$proxy = datacenter; // string | Type of proxy. Use `residential` if your site restricts traffic from datacenters, or `stealth` for the most heavily protected sites with advanced anti-bot detection (`datacenter` by default). Residential and stealth proxy requests are more expensive than datacenter, see the pricing page for details.
-$country = us; // string | Country of the proxy to use (US by default).
-$custom_proxy = 'custom_proxy_example'; // string | Your own proxy URL to use instead of our built-in proxy pool in \"http://user:password@host:port\" format (<a target=\"_blank\" href=\"https://webscraping.ai/proxies/smartproxy\">Smartproxy</a> for example).
-$device = desktop; // string | Type of device emulation.
-$error_on_404 = false; // bool | Return error on 404 HTTP status on the target page (false by default).
-$error_on_redirect = false; // bool | Return error on redirect on the target page (false by default).
-$js_script = document.querySelector('button').click();; // string | Custom JavaScript code to execute on the target page.
 
-try {
-    $result = $apiInstance->getFields($url, $fields, $headers, $timeout, $js, $js_timeout, $wait_for, $proxy, $country, $custom_proxy, $device, $error_on_404, $error_on_redirect, $js_script);
-    print_r($result);
-} catch (Exception $e) {
-    echo 'Exception when calling AIApi->getFields: ', $e->getMessage(), PHP_EOL;
-}
+// LLM question over a page
+$answer = $client->question(
+    url: 'https://example.com',
+    question: 'What is the main topic?',
+);
 
+// LLM-extracted structured fields
+$fields = $client->fields(
+    url: 'https://example.com',
+    fields: [
+        'title' => 'Main product title',
+        'price' => 'Current price',
+    ],
+);
+
+// Account quota
+$account = $client->account();
 ```
 
-## API Endpoints
+All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `proxy`, `country`, `custom_proxy`, `device`, `error_on_404`, `error_on_redirect`, `js_script`, …) are PHP named arguments. See [the API docs](https://webscraping.ai/docs) for the full parameter reference.
 
-All URIs are relative to *https://api.webscraping.ai*
+## Bring your own HTTP client
 
-Class | Method | HTTP request | Description
------------- | ------------- | ------------- | -------------
-*AIApi* | [**getFields**](docs/Api/AIApi.md#getfields) | **GET** /ai/fields | Extract structured data fields from a web page
-*AIApi* | [**getQuestion**](docs/Api/AIApi.md#getquestion) | **GET** /ai/question | Get an answer to a question about a given web page
-*AccountApi* | [**account**](docs/Api/AccountApi.md#account) | **GET** /account | Information about your account calls quota
-*HTMLApi* | [**getHTML**](docs/Api/HTMLApi.md#gethtml) | **GET** /html | Page HTML by URL
-*SelectedHTMLApi* | [**getSelected**](docs/Api/SelectedHTMLApi.md#getselected) | **GET** /selected | HTML of a selected page area by URL and CSS selector
-*SelectedHTMLApi* | [**getSelectedMultiple**](docs/Api/SelectedHTMLApi.md#getselectedmultiple) | **GET** /selected-multiple | HTML of multiple page areas by URL and CSS selectors
-*TextApi* | [**getText**](docs/Api/TextApi.md#gettext) | **GET** /text | Page text by URL
+By default, `php-http/discovery` resolves a PSR-18 client at runtime from whatever's installed. To pin a specific client, pass it explicitly:
 
-## Models
+```php
+use GuzzleHttp\Client as Guzzle;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use WebScrapingAI\Client;
 
-- [Account](docs/Model/Account.md)
-- [Error](docs/Model/Error.md)
+$factory = new Psr17Factory();
+$client = new Client(
+    apiKey: getenv('WEBSCRAPING_AI_KEY'),
+    httpClient: new Guzzle(['timeout' => 30.0]),
+    requestFactory: $factory,
+    uriFactory: $factory,
+);
+```
 
-## Authorization
+Configure transport-level timeouts on your HTTP client. The `timeout` parameter accepted by each endpoint method controls server-side page retrieval timeout, not the HTTP transport.
 
-Authentication schemes defined for the API:
-### api_key
+## Errors
 
-- **Type**: API key
-- **API key parameter name**: api_key
-- **Location**: URL query string
+The client raises typed exceptions for every documented status code:
 
+| Status | Exception |
+| --- | --- |
+| 400 | `WebScrapingAI\Exception\BadRequestException` |
+| 402 | `WebScrapingAI\Exception\PaymentRequiredException` |
+| 403 | `WebScrapingAI\Exception\AuthenticationException` |
+| 429 | `WebScrapingAI\Exception\RateLimitException` |
+| 500 | `WebScrapingAI\Exception\ServerException` |
+| 504 | `WebScrapingAI\Exception\GatewayTimeoutException` |
 
-## Tests
+All inherit from `WebScrapingAI\Exception\ApiException`, which exposes `$message`, `$status`, `$statusCode`, `$statusMessage`, `$body`, and `$responseBody`. The latter three are populated when the API surfaces target-page errors as 500s.
 
-To run the tests, use:
+Transport-level failures raise `WebScrapingAI\Exception\ApiTimeoutException` (the PSR-18 client timed out) or `WebScrapingAI\Exception\ApiConnectionException` (DNS / connection refused / TLS).
+
+All SDK-originated exceptions implement the marker interface `WebScrapingAI\Exception\WebScrapingAIException`, so a single `catch (WebScrapingAIException $e)` block catches everything.
+
+## Response shapes
+
+The client returns whatever the API returns — it does not normalise or unwrap. A couple of current quirks worth knowing:
+
+- `fields()` returns `['result' => [...fields...]]` (the live API wraps the extracted fields under a `result` key).
+- `selectedMultiple()` returns `array<int, array<int, string>>` — an outer wrapper containing all matched chunks concatenated.
+
+These are upstream spec/server drifts; the official Ruby and Python clients return the same shapes.
+
+## Migration from 3.x
+
+3.x was generated from the OpenAPI spec under the namespace `OpenAPI\Client\` and used per-tag classes (`AIApi`, `HTMLApi`, etc.). 4.0 is a hand-authored rewrite with a single `WebScrapingAI\Client` entry point. There are no deprecation shims — pin to `^3.2` if you need the old surface.
+
+## Development
 
 ```bash
 composer install
-vendor/bin/phpunit
+composer test       # PHPUnit
+composer lint       # php-cs-fixer (dry-run)
+composer analyse    # PHPStan
 ```
 
-## Author
+## License
 
-support@webscraping.ai
-
-## About this package
-
-This PHP package is automatically generated by the [OpenAPI Generator](https://openapi-generator.tech) project:
-
-- API version: `3.2.1`
-    - Package version: `3.2.1`
-    - Generator version: `7.22.0`
-- Build package: `org.openapitools.codegen.languages.PhpClientCodegen`
+MIT — see [LICENSE](LICENSE).

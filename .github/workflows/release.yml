@@ -1,0 +1,37 @@
+name: Release
+
+# Packagist auto-publishes the package when this repo's webhook fires on tag push
+# (configured at packagist.org → manage package → "Auto-update" section). This
+# workflow runs the test suite on the released ref and verifies the tag matches
+# Client::VERSION so Packagist never picks up a tag we haven't validated.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+          tools: composer:v2
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Verify tag matches Client::VERSION
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(php -r 'require "vendor/autoload.php"; echo WebScrapingAI\Client::VERSION;')
+          echo "Tag (stripped): $TAG"
+          echo "Client::VERSION: $VERSION"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Client::VERSION $VERSION"
+            exit 1
+          fi
+      - name: Run tests
+        run: vendor/bin/phpunit
