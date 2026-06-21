@@ -72,7 +72,7 @@ All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `
 
 ## Bring your own HTTP client
 
-By default, `php-http/discovery` resolves a PSR-18 client at runtime from whatever's installed. To pin a specific client, pass it explicitly:
+By default, the client builds its own transport. If Guzzle is installed it is used with a request deadline applied (see [Timeouts](#timeouts)); otherwise `php-http/discovery` resolves whatever PSR-18 client is installed. To pin a specific client, pass it explicitly:
 
 ```php
 use GuzzleHttp\Client as Guzzle;
@@ -88,7 +88,26 @@ $client = new Client(
 );
 ```
 
-Configure transport-level timeouts on your HTTP client. The `timeout` parameter accepted by each endpoint method controls server-side page retrieval timeout, not the HTTP transport.
+Injecting your own client opts out of the default deadline — configure transport-level timeouts on the client you pass.
+
+## Timeouts
+
+Two different timeouts are in play, and they're easy to confuse:
+
+- The `timeout` parameter accepted by each endpoint method (`html()`, `text()`, …) controls **server-side page retrieval** — how long the API waits for the target page. It does not bound how long your HTTP client waits.
+- The **transport timeout** bounds how long the PSR-18 client itself will wait on TCP connect and on reading the response body, so a stalled connection can't hang your process forever.
+
+By default the client applies a transport deadline when it builds its own client and Guzzle is available: a total request timeout of `Client::DEFAULT_TIMEOUT` (60s) and a TCP connect timeout of `Client::DEFAULT_CONNECT_TIMEOUT` (10s). Override them via the constructor:
+
+```php
+$client = new Client(
+    apiKey: getenv('WEBSCRAPING_AI_KEY'),
+    timeout: 120.0,        // total request deadline, seconds
+    connectTimeout: 5.0,   // TCP connect deadline, seconds
+);
+```
+
+These constructor timeouts apply **only** to the auto-built default client. If you inject your own `httpClient`, or no concrete client (Guzzle) is available and discovery falls back to an unknown PSR-18 implementation, no deadline is imposed — in that case inject a client with timeouts configured to get one.
 
 ## Errors
 

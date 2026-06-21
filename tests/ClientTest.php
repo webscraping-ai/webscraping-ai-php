@@ -47,6 +47,38 @@ final class ClientTest extends TestCase
         new Client(apiKey: '');
     }
 
+    public function testInjectedHttpClientIsPreservedUnchanged(): void
+    {
+        $factory = new Psr17Factory();
+        $injected = new MockClient($factory);
+
+        $client = new Client(
+            apiKey: 'test-key',
+            httpClient: $injected,
+            requestFactory: $factory,
+            uriFactory: $factory,
+        );
+
+        self::assertSame($injected, $this->httpClientOf($client));
+    }
+
+    public function testDefaultHttpClientIsGuzzleWhenAvailable(): void
+    {
+        $client = new Client(apiKey: 'test-key');
+
+        self::assertInstanceOf(\GuzzleHttp\Client::class, $this->httpClientOf($client));
+    }
+
+    private function httpClientOf(Client $client): object
+    {
+        $property = new \ReflectionProperty(Client::class, 'httpClient');
+
+        $value = $property->getValue($client);
+        self::assertIsObject($value);
+
+        return $value;
+    }
+
     public function testQuestionSendsAllParameters(): void
     {
         $this->http->addResponse(new Response(200, ['Content-Type' => 'text/html'], 'an answer'));

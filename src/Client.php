@@ -37,6 +37,12 @@ final class Client
 
     public const DEFAULT_BASE_URL = 'https://api.webscraping.ai';
 
+    /** Default total request timeout (seconds) applied to the auto-built HTTP client. */
+    public const DEFAULT_TIMEOUT = 60.0;
+
+    /** Default TCP connect timeout (seconds) applied to the auto-built HTTP client. */
+    public const DEFAULT_CONNECT_TIMEOUT = 10.0;
+
     /** @var array<int, class-string<ApiException>> */
     private const STATUS_TO_EXCEPTION = [
         400 => BadRequestException::class,
@@ -52,21 +58,63 @@ final class Client
     private readonly UriFactoryInterface $uriFactory;
     private readonly string $baseUrl;
 
+    /**
+     * @param ClientInterface|null $httpClient     PSR-18 client. Inject one to take full control of
+     *                                             transport timeouts — when you do, no deadline is
+     *                                             imposed by this client (it's your responsibility).
+     *                                             When omitted, a default client is built with a total
+     *                                             request deadline of `$timeout` seconds and a TCP
+     *                                             connect deadline of `$connectTimeout` seconds, so
+     *                                             requests can't hang forever on a stalled connection
+     *                                             or body read.
+     * @param float|null           $timeout        Total request timeout (seconds) for the auto-built
+     *                                             client. Only applied when no `$httpClient` is
+     *                                             injected and a known concrete client (Guzzle) is
+     *                                             available.
+     * @param float|null           $connectTimeout TCP connect timeout (seconds), same caveats.
+     */
     public function __construct(
         private readonly string $apiKey,
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?UriFactoryInterface $uriFactory = null,
         string $baseUrl = self::DEFAULT_BASE_URL,
+        ?float $timeout = self::DEFAULT_TIMEOUT,
+        ?float $connectTimeout = self::DEFAULT_CONNECT_TIMEOUT,
     ) {
         if ($apiKey === '') {
             throw new \InvalidArgumentException('apiKey must be a non-empty string');
         }
 
-        $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
+        $this->httpClient = $httpClient ?? self::defaultHttpClient(
+            $timeout ?? self::DEFAULT_TIMEOUT,
+            $connectTimeout ?? self::DEFAULT_CONNECT_TIMEOUT,
+        );
         $this->requestFactory = $requestFactory ?? Psr17FactoryDiscovery::findRequestFactory();
         $this->uriFactory = $uriFactory ?? Psr17FactoryDiscovery::findUriFactory();
         $this->baseUrl = rtrim($baseUrl, '/');
+    }
+
+    /**
+     * Build the default PSR-18 client used when the caller doesn't inject one.
+     *
+     * Prefers Guzzle (if present) so a real request deadline can be applied:
+     * `timeout` covers the whole transfer including the body read, and
+     * `connect_timeout` covers the TCP connect — addressing both stalled-connect
+     * and stalled-body-read hangs. Without Guzzle there is no portable way to set
+     * a timeout on an unknown PSR-18 client, so discovery is used best-effort and
+     * callers should inject a pre-configured client to get a deadline.
+     */
+    private static function defaultHttpClient(float $timeout, float $connectTimeout): ClientInterface
+    {
+        if (class_exists(\GuzzleHttp\Client::class)) {
+            return new \GuzzleHttp\Client([
+                'timeout' => $timeout,
+                'connect_timeout' => $connectTimeout,
+            ]);
+        }
+
+        return Psr18ClientDiscovery::find();
     }
 
     /**
