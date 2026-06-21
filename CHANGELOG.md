@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.0] — Unreleased
+## [4.0.1] — 2026-06-21
+
+### Fixed
+
+- The default HTTP client now applies a request deadline. When no PSR-18 client is injected and Guzzle is available, the client is built with `timeout` (60s) and `connect_timeout` (10s) so requests can no longer hang indefinitely on connect or body reads. Both are configurable via new constructor parameters; injecting your own client opts out.
+
+## [4.0.0] — 2026-05-12
 
 ### Changed (breaking)
 
