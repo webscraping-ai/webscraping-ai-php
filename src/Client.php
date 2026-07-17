@@ -33,7 +33,7 @@ use WebScrapingAI\Internal\QueryEncoder;
  */
 final class Client
 {
-    public const VERSION = '4.0.1';
+    public const VERSION = '4.0.2';
 
     public const DEFAULT_BASE_URL = 'https://api.webscraping.ai';
 
