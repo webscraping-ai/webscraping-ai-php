@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Client::serp()` for the new `/serp` endpoint: parsed search engine results for a query (`q`, optional `engine`, `gl`, `hl`, `page`). Returns the decoded `SerpResult` JSON. Flat 15 credits per search; failed searches are not charged.
-- `serp()` validates its input before sending: whitespace-only `q` and `page` < 1 throw `\InvalidArgumentException` (the server would silently treat an invalid page as page 1 and still charge). The server caps `page` at 100.
+- `serp()` validates its input before sending: whitespace-only `q` and `page` < 1 throw `\InvalidArgumentException` (the server also rejects an invalid page with a 400, not billed; checking client-side saves the round trip). Pages are 1–100: the server rejects a `page` above 100 with a 400.
 - `bin/smoke.php` now asserts on result shape (non-empty results, SERP `organic_results` and echoed `q`, a non-empty `selected_multiple` match, `fields` `result` key), runs page tools with `js=false` + datacenter proxy (~31 credits), catches every exception per case, redacts the API key from failure output and prints single-line previews.
 
 ### Fixed

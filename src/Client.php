@@ -390,7 +390,7 @@ final class Client
      * @param string|null $gl     Two-letter country code (API default `"us"`).
      * @param string|null $hl     Two-letter language code (API default `"en"`).
      * @param int|null    $page   Results page number, 1-based (API default 1). Must be >= 1; the
-     *                            server caps it at 100.
+     *                            server rejects > 100 with a 400 (not billed).
      * @return array<int|string, mixed>
      *
      * @throws \InvalidArgumentException When `q` is empty/whitespace-only or `page` is < 1 (no request is sent).

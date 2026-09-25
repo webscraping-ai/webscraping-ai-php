@@ -315,7 +315,7 @@ final class ClientTest extends TestCase
     public function testSerpRejectsNonIntegerPage(): void
     {
         // The `?int` parameter type is the non-integer guard: under strict_types a float
-        // never reaches the client (and so never reaches the server as page 1).
+        // never reaches the client (so no round trip to a server that would 400 it).
         $this->expectException(\TypeError::class);
 
         try {
