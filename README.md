@@ -68,6 +68,9 @@ $fields = $client->fields(
     ],
 );
 
+// Structured data for a page on a supported site (YouTube, TikTok, X, ...)
+$video = $client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+
 // Account quota
 $account = $client->account();
 ```
@@ -91,6 +94,42 @@ $nextPage = $serp['pagination']['next'] ?? null; // absent on the last page
 ```
 
 The decoded array has `search_parameters`, `search_information`, `organic_results` (`position`, `title`, `link`, `domain`, `displayed_link`, and optionally `snippet` / `date`), `related_searches` (optional) and `pagination`. Optional keys are omitted rather than set to `null`.
+
+## Structured data for supported sites
+
+`data()` returns structured JSON for a public page on a supported site — pass the page's normal URL, e.g. a YouTube video/channel/playlist, TikTok video/profile, X (Twitter) post/profile, LinkedIn company/job/profile, Instagram post/reel/profile or Reddit post/subreddit/user. The site (`provider`) and page kind (`type`) are detected from the URL. 15 credits per request (including results that parse empty or no longer exist); failed fetches are not charged.
+
+More sites and page types are added on the server over time and work without upgrading this package, so the client does **not** check which sites are supported — only that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request). An unsupported URL or page type returns a 400 that is not charged (`BadRequestException`). Its message lists what is supported. For other sites use `fields()`.
+
+None of the page-scraping parameters (`js`, `proxy`, `headers`, `timeout`, …) apply. The options are:
+
+- `country` — two-letter country code of the proxy used to fetch the page, `us` by default. The server rejects unknown codes with a 400.
+- `transcript` — YouTube videos only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 and is not charged.
+- `transcriptLanguage` — caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
+
+```php
+use WebScrapingAI\Exception\BadRequestException;
+
+$result = $client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', transcript: true);
+
+if ($result['parse_status'] === 'ok') {
+    echo $result['request_parameters']['provider'], ': ', $result['data']['title'], "\n";
+}
+
+try {
+    $client->data(url: 'https://example.com/');
+} catch (BadRequestException $e) {
+    echo $e->getMessage(); // "Unsupported URL for /data. ..." — lists what is supported
+}
+```
+
+The decoded array has `request_parameters` (`url`, `provider`, `type`), `parse_status` and `data`. `provider` and `type` are open sets — expect new values. `parse_status` is `ok`, `parse_failed` (fetched but not parsed; `data` may be `null` or partial) or `not_found`; all three are charged successes. The shape of `data` depends on `provider` and `type`.
+
+Provider-specific parameters added server-side after this release can be sent through `params`, as-is (scalar values; `null` is dropped). `api_key`, `url`, `country`, `transcript` and `transcript_language` are rejected with `\InvalidArgumentException` — use the named arguments for those, even when you haven't set them:
+
+```php
+$client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', params: ['some_new_option' => 'value']);
+```
 
 ## Bring your own HTTP client
 

@@ -9,7 +9,6 @@ use Http\Discovery\Psr18ClientDiscovery;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\NetworkExceptionInterface;
-use Psr\Http\Client\RequestExceptionInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriFactoryInterface;
@@ -33,7 +32,7 @@ use WebScrapingAI\Internal\QueryEncoder;
  */
 final class Client
 {
-    public const VERSION = '4.1.0';
+    public const VERSION = '4.2.0';
 
     public const DEFAULT_BASE_URL = 'https://api.webscraping.ai';
 
@@ -51,6 +50,13 @@ final class Client
         429 => RateLimitException::class,
         500 => ServerException::class,
         504 => GatewayTimeoutException::class,
+    ];
+
+    /** /data query parameters that have a named argument (wire name => PHP argument name). */
+    private const DATA_NAMED_PARAMS = [
+        'country' => 'country',
+        'transcript' => 'transcript',
+        'transcript_language' => 'transcriptLanguage',
     ];
 
     private readonly ClientInterface $httpClient;
@@ -419,6 +425,85 @@ final class Client
     }
 
     /**
+     * Structured data for a page on a supported site.
+     *
+     * Pass the page's normal URL (e.g. a YouTube video, TikTok profile, X post,
+     * LinkedIn company, Instagram reel or Reddit thread); the site and page kind
+     * are detected server-side. More sites and page types are added on the server
+     * over time, so the client deliberately does not validate the URL beyond
+     * "non-blank": an unsupported URL or page type returns a 400 that is not
+     * charged (`BadRequestException`). Its message lists what is supported.
+     *
+     * URL-shaped but not a page-scraping call: none of the scraping options (js,
+     * proxy, headers, timeout, device, ...) apply. 15 credits per request,
+     * including `parse_failed` / `not_found` results; failed fetches are refunded.
+     *
+     * Returns the decoded `DataResult` JSON: `request_parameters` (`url`, `provider`,
+     * `type` — open sets of strings), `parse_status` (`ok`, `parse_failed` or
+     * `not_found`) and `data` (provider/type-specific array, or `null`).
+     *
+     * @param string      $url                Page URL (required, not empty or whitespace-only; sent as given).
+     * @param string|null $country            Two-letter country code of the proxy used to fetch the page, `us` by
+     *                                        default. The server checks it and rejects unknown ones with a 400.
+     * @param bool|null   $transcript         YouTube videos only. Also fetch the video's transcript into
+     *                                        `data.transcript`. It's null when no matching captions are available.
+     *                                        If the transcript fetch itself fails, the whole request fails with a
+     *                                        500 and is not charged.
+     * @param string|null $transcriptLanguage Caption language to pick, e.g. `en` or `de`. Without it, English is
+     *                                        preferred, then the first available track. If the video has no
+     *                                        captions in that language, `data.transcript` is null.
+     * @param array<int|string, string|int|float|bool|null> $params Extra query parameters sent as-is, for
+     *                                        provider-specific options added server-side after this release.
+     *                                        Scalar values only; `null` values are dropped. May not contain
+     *                                        `api_key`, `url`, `country`, `transcript` or `transcript_language`
+     *                                        (use the named arguments for those).
+     * @return array<int|string, mixed>
+     *
+     * @throws \InvalidArgumentException When `url` is blank or `$params` is invalid (no request is sent).
+     */
+    public function data(
+        string $url,
+        ?string $country = null,
+        ?bool $transcript = null,
+        ?string $transcriptLanguage = null,
+        array $params = [],
+    ): array {
+        if (trim($url) === '') {
+            throw new \InvalidArgumentException('url must be a non-empty, non-whitespace string');
+        }
+
+        $query = [
+            'url' => $url,
+            'country' => $country,
+            'transcript' => $transcript,
+            'transcript_language' => $transcriptLanguage,
+        ];
+
+        foreach ($params as $key => $value) {
+            // PHP turns numeric-string keys like '123' into ints; send them as strings.
+            $key = (string) $key;
+            if ($key === '') {
+                throw new \InvalidArgumentException('params keys must be non-empty strings');
+            }
+            if ($key === 'api_key' || $key === 'url') {
+                throw new \InvalidArgumentException("params may not contain \"{$key}\"");
+            }
+            if (isset(self::DATA_NAMED_PARAMS[$key])) {
+                $named = self::DATA_NAMED_PARAMS[$key];
+                throw new \InvalidArgumentException(
+                    "params may not contain \"{$key}\"; use the named argument \${$named} instead"
+                );
+            }
+            if ($value !== null && !is_scalar($value)) {
+                throw new \InvalidArgumentException("params[\"{$key}\"] must be a string, int, float, bool or null");
+            }
+            $query[$key] = $value;
+        }
+
+        return $this->getArray('/data', $query);
+    }
+
+    /**
      * Account quota and limits.
      *
      * @return array<int|string, mixed>
@@ -471,7 +556,8 @@ final class Client
 
         try {
             $response = $this->httpClient->sendRequest($request);
-        } catch (ClientExceptionInterface $exception) {
+        } catch (ClientExceptionInterface|\RuntimeException $exception) {
+            // \RuntimeException: some PSR-18 adapters leak non-PSR exceptions; wrap (and redact) them too.
             throw $this->wrapTransportException($exception);
         }
 
@@ -551,24 +637,32 @@ final class Client
         return is_array($decoded) ? $decoded : [];
     }
 
-    private function wrapTransportException(ClientExceptionInterface $exception): \Throwable
+    /**
+     * Map a transport failure to the SDK's exception hierarchy without leaking the API key.
+     *
+     * The key travels in the query string, and HTTP clients embed the request URL in
+     * their error messages (Guzzle: "cURL error 6: ... for https://...&api_key=KEY"),
+     * so the message is redacted and the original exception is deliberately NOT chained
+     * as `previous`: its message and `getRequest()->getUri()` both carry the key. The
+     * original class name is kept in the message for debugging.
+     */
+    private function wrapTransportException(\Throwable $exception): \Throwable
     {
-        $message = $exception->getMessage();
-        $isTimeout = $exception instanceof NetworkExceptionInterface
-            && stripos($message, 'timed out') !== false;
+        $message = $this->redact($exception->getMessage()) . ' (' . $exception::class . ')';
 
-        if ($exception instanceof NetworkExceptionInterface) {
-            if ($isTimeout || stripos($message, 'timeout') !== false) {
-                return new ApiTimeoutException($message, 0, $exception);
-            }
-
-            return new ApiConnectionException($message, 0, $exception);
+        $original = $exception->getMessage();
+        $isTimeout = stripos($original, 'timed out') !== false || stripos($original, 'timeout') !== false;
+        if ($exception instanceof NetworkExceptionInterface && $isTimeout) {
+            return new ApiTimeoutException($message);
         }
 
-        if ($exception instanceof RequestExceptionInterface) {
-            return new ApiConnectionException($message, 0, $exception);
-        }
+        return new ApiConnectionException($message);
+    }
 
-        return new ApiConnectionException($message, 0, $exception);
+    private function redact(string $text): string
+    {
+        $text = str_replace([$this->apiKey, rawurlencode($this->apiKey), urlencode($this->apiKey)], '[REDACTED]', $text);
+
+        return (string) preg_replace('/(api_key|api%5Fkey)=[^&\s"\'<>]*/i', '$1=[REDACTED]', $text);
     }
 }

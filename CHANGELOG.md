@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] — 2026-09-25
+### Added
+
+- `Client::data()` for the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit), with optional `country`, `transcript` and `transcriptLanguage`. Returns the decoded `DataResult` JSON (`request_parameters`, `parse_status`, `data`). 15 credits per request.
+- The URL is not checked against a list of sites client-side (only non-blank; a blank `url` throws `\InvalidArgumentException`), so sites added on the server work without a client upgrade. An unsupported URL or page type returns a 400 that is not charged (`BadRequestException`). Its message lists what is supported.
+- `data()` accepts `array $params` for provider-specific query parameters added server-side later, sent as-is. Numeric keys are sent as strings. `api_key`, `url`, `country`, `transcript`, `transcript_language` (use the named arguments, even when unset) or a non-scalar value throws `\InvalidArgumentException`.
+- `bin/smoke.php` adds a YouTube `/data` call (asserts `parse_status` `ok`, provider `youtube` and a non-empty `data.title`) and an `https://example.com/` call that must come back as a server 400 whose message contains `Unsupported URL` (~46 credits per sweep).
+
+### Security
+
+- Transport errors no longer leak the API key. HTTP clients embed the request URL (which carries `api_key`) in their error messages — Guzzle ends connect/timeout errors with `for https://...&api_key=KEY` — and that text was copied into `ApiConnectionException`/`ApiTimeoutException` on every endpoint, with the raw PSR-18 exception (whose `getRequest()->getUri()` also holds the key) chained as `previous`. Messages are now redacted (`api_key=[REDACTED]`), the original exception is no longer chained (its class name is kept in the message), and non-PSR `\RuntimeException`s thrown by an HTTP client are wrapped and redacted too.
+
 ## [4.1.0] — 2026-09-25
 
 ### Added

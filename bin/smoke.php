@@ -5,10 +5,11 @@ declare(strict_types=1);
 /**
  * Hand-run smoke test against the live API. Not part of the test suite.
  *
- * Costs ~32 credits per full sweep: account (free), 4 page calls
+ * Costs ~46 credits per full sweep: account (free), 4 page calls
  * (html/text/selected/selected_multiple) with js=false + datacenter proxy at
- * 1 credit each, question + fields at 6 each (datacenter, no JS), and one
- * SERP search at 15 → 4 + 12 + 15 = 31.
+ * 1 credit each, question + fields at 6 each (datacenter, no JS), one SERP
+ * search at 15, one /data call at 15, and one /data call on an unsupported
+ * URL that the server must reject with a free 400 → 4 + 12 + 15 + 15 = 46.
  *
  * Each case asserts on the shape of the result, not just the absence of an
  * exception; any failure prints a FAIL line and the script exits 1.
@@ -20,6 +21,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use WebScrapingAI\Client;
+use WebScrapingAI\Exception\BadRequestException;
 
 $apiKey = getenv('WEBSCRAPING_AI_KEY');
 if (!is_string($apiKey) || $apiKey === '') {
@@ -98,6 +100,38 @@ $cases = [
         }
 
         return [$r, null];
+    },
+    'data' => function () use ($client) {
+        $r = $client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+        if (($r['parse_status'] ?? null) !== 'ok') {
+            return [$r, 'parse_status is ' . var_export($r['parse_status'] ?? null, true) . ', expected "ok"'];
+        }
+        $provider = $r['request_parameters']['provider'] ?? null;
+        if ($provider !== 'youtube') {
+            return [$r, 'request_parameters.provider is ' . var_export($provider, true) . ', expected "youtube"'];
+        }
+        if (!is_array($r['data'] ?? null) || !nonEmpty($r['data']['title'] ?? null)) {
+            return [$r, 'data is null or data.title is missing/empty'];
+        }
+
+        return [$r, null];
+    },
+    // Proves there is no client-side site filter: the *server* must reject it (400, not charged).
+    'data_unsupported' => function () use ($client) {
+        try {
+            $r = $client->data(url: 'https://example.com/');
+        } catch (BadRequestException $e) {
+            if ($e->status !== 400) {
+                return ['HTTP ' . $e->status . ' ' . $e->getMessage(), "status {$e->status}, expected 400"];
+            }
+            if (!str_contains($e->getMessage(), 'Unsupported URL')) {
+                return ['400 ' . $e->getMessage(), 'message does not contain "Unsupported URL"'];
+            }
+
+            return ['400 ' . $e->getMessage(), null];
+        }
+
+        return [$r, 'expected a 400 BadRequestException from the server, got a 200'];
     },
 ];
 

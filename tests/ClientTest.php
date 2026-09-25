@@ -334,11 +334,306 @@ final class ClientTest extends TestCase
         self::assertSame('1', $this->parseQuery($this->lastRequest())['page']);
     }
 
+    public function testDataSendsQueryParametersAndReturnsDecodedJson(): void
+    {
+        $payload = [
+            'request_parameters' => ['url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'provider' => 'youtube', 'type' => 'video'],
+            'parse_status' => 'ok',
+            'data' => ['video_id' => 'dQw4w9WgXcQ', 'title' => 'Never Gonna Give You Up', 'transcript' => null],
+        ];
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], json_encode($payload, JSON_THROW_ON_ERROR)));
+
+        $result = $this->client->data(
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            country: 'de',
+            transcript: true,
+            transcriptLanguage: 'en',
+        );
+
+        self::assertSame($payload, $result);
+
+        $request = $this->lastRequest();
+        self::assertSame('GET', $request->getMethod());
+        self::assertSame('/data', $request->getUri()->getPath());
+        self::assertStringContainsString('url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DdQw4w9WgXcQ', $request->getUri()->getQuery());
+        self::assertSame([
+            'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'country' => 'de',
+            'transcript' => 'true',
+            'transcript_language' => 'en',
+            'api_key' => 'test-key',
+        ], $this->parseQuery($request));
+    }
+
+    public function testDataOmitsUnsetOptionalParametersAndSendsFalse(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"parse_status":"ok","data":{}}'));
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"parse_status":"ok","data":{}}'));
+
+        $this->client->data(url: 'https://www.tiktok.com/@user');
+        self::assertSame(['url' => 'https://www.tiktok.com/@user', 'api_key' => 'test-key'], $this->parseQuery($this->lastRequest()));
+
+        $this->client->data(url: 'https://www.youtube.com/watch?v=x', transcript: false);
+        self::assertSame('false', $this->parseQuery($this->lastRequest())['transcript']);
+    }
+
+    public function testDataSendsUnknownSiteUrlUnmodifiedWithoutClientSideError(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"parse_status":"ok","data":{}}'));
+
+        // Mixed case, %2F, non-ASCII, space, fragment and surrounding spaces: any lower-casing,
+        // trimming, fragment dropping or double-encoding would change the bytes below.
+        $url = '  https://Example.COM/A%2Fb/ünï?x=1&y=a b#Frag  ';
+        $this->client->data(url: $url);
+
+        self::assertCount(1, $this->http->getRequests());
+        $rawQuery = $this->lastRequest()->getUri()->getQuery();
+        self::assertStringStartsWith('url=' . rawurlencode($url) . '&', $rawQuery);
+        self::assertSame($url, $this->parseQuery($this->lastRequest())['url']);
+    }
+
+    public function testDataSendsExtraParamsEncoded(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"parse_status":"ok","data":{}}'));
+
+        $this->client->data(url: 'https://www.youtube.com/watch?v=x', params: [
+            'comments' => true,
+            'limit' => 20,
+            'a&b=c' => 'x&y=z',
+            'dropped' => null,
+        ]);
+
+        $request = $this->lastRequest();
+        $rawQuery = $request->getUri()->getQuery();
+        self::assertStringContainsString('a%26b%3Dc=x%26y%3Dz', $rawQuery);
+        self::assertSame([
+            'url' => 'https://www.youtube.com/watch?v=x',
+            'comments' => 'true',
+            'limit' => '20',
+            'a&b=c' => 'x&y=z',
+            'api_key' => 'test-key',
+        ], $this->parseQuery($request));
+    }
+
+    public function testDataAcceptsNumericStringParamKeys(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"parse_status":"ok","data":{}}'));
+
+        // PHP stores the key '123' as int 123.
+        $this->client->data(url: 'https://www.youtube.com/watch?v=x', params: ['123' => 'v', 'x']);
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame('v', $params['123']);
+        self::assertSame('x', $params['124']);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function namedDataParamProvider(): iterable
+    {
+        yield 'country' => ['country', '$country'];
+        yield 'transcript' => ['transcript', '$transcript'];
+        yield 'transcript_language' => ['transcript_language', '$transcriptLanguage'];
+    }
+
+    #[DataProvider('namedDataParamProvider')]
+    public function testDataRejectsExtraParamThatRepeatsNamedArgumentEvenWhenUnset(string $key, string $named): void
+    {
+        try {
+            $this->client->data(url: 'https://www.youtube.com/watch?v=x', params: [$key => 'x']);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString("\"{$key}\"", $exception->getMessage());
+            self::assertStringContainsString("use the named argument {$named}", $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function blankUrlProvider(): iterable
+    {
+        yield 'empty' => [''];
+        yield 'space' => [' '];
+        yield 'mixed whitespace' => [" \t\n "];
+    }
+
+    #[DataProvider('blankUrlProvider')]
+    public function testDataRejectsBlankUrl(string $url): void
+    {
+        try {
+            $this->client->data(url: $url);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString('url must be', $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    /**
+     * @return iterable<string, array{array<mixed>, string}>
+     */
+    public static function invalidDataParamsProvider(): iterable
+    {
+        yield 'api_key' => [['api_key' => 'other-key'], 'api_key'];
+        yield 'url' => [['url' => 'https://evil.example/'], 'url'];
+        yield 'duplicate of set named argument' => [['country' => 'gb'], 'country'];
+        yield 'empty key' => [['' => 'x'], 'keys'];
+        yield 'array value' => [['nested' => ['a' => 'b']], 'nested'];
+        yield 'object value' => [['obj' => new \stdClass()], 'obj'];
+    }
+
+    /**
+     * @param array<mixed> $params
+     */
+    #[DataProvider('invalidDataParamsProvider')]
+    public function testDataRejectsInvalidExtraParams(array $params, string $mention): void
+    {
+        try {
+            $this->client->data(url: 'https://www.youtube.com/watch?v=x', country: 'us', params: $params);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString($mention, $exception->getMessage());
+            self::assertStringNotContainsString('other-key', $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    public function testDataParsesUnknownProviderAndNullData(): void
+    {
+        $payload = '{"request_parameters":{"url":"https://new.example/p/1","provider":"brand_new_site","type":"widget"},"parse_status":"parse_failed","data":null}';
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], $payload));
+
+        $result = $this->client->data(url: 'https://new.example/p/1');
+
+        self::assertSame('brand_new_site', $result['request_parameters']['provider']);
+        self::assertSame('widget', $result['request_parameters']['type']);
+        self::assertSame('parse_failed', $result['parse_status']);
+        self::assertArrayHasKey('data', $result);
+        self::assertNull($result['data']);
+    }
+
+    public function testDataUnsupportedUrlMapsToBadRequestWithoutLeakingApiKey(): void
+    {
+        $body = '{"message":"Unsupported URL for /data. Supported sites: youtube, tiktok, twitter, linkedin, instagram, reddit. For other sites, use /ai/fields"}';
+        $this->http->addResponse(new Response(400, ['Content-Type' => 'application/json'], $body));
+
+        try {
+            $this->client->data(url: 'https://example.com/anything');
+            self::fail('Expected BadRequestException');
+        } catch (BadRequestException $exception) {
+            self::assertSame(400, $exception->status);
+            self::assertStringStartsWith('Unsupported URL for /data.', $exception->getMessage());
+            self::assertNull($exception->statusCode);
+            $this->assertNoApiKeyInChain($exception);
+        }
+    }
+
+    /**
+     * A Guzzle ConnectException exactly as Guzzle builds it: the message ends with
+     * "for <full request URL>", and getRequest() carries the same URL.
+     */
+    private function guzzleConnectException(string $curlError, string $path): \GuzzleHttp\Exception\ConnectException
+    {
+        $url = 'https://api.webscraping.ai' . $path . '?url=https%3A%2F%2Fexample.com&api_key=test-key';
+        $request = new \GuzzleHttp\Psr7\Request('GET', $url);
+
+        return new \GuzzleHttp\Exception\ConnectException(
+            "{$curlError} (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for {$url}",
+            $request,
+        );
+    }
+
+    public function testDataTransportErrorDoesNotLeakApiKey(): void
+    {
+        $this->http->addException($this->guzzleConnectException('cURL error 6: Could not resolve host: api.webscraping.ai', '/data'));
+
+        try {
+            $this->client->data(url: 'https://www.youtube.com/watch?v=x');
+            self::fail('Expected ApiConnectionException');
+        } catch (ApiConnectionException $exception) {
+            self::assertStringContainsString('Could not resolve host', $exception->getMessage());
+            self::assertStringContainsString('api_key=[REDACTED]', $exception->getMessage());
+            self::assertNull($exception->getPrevious());
+            $this->assertNoApiKeyInChain($exception);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Client): mixed, string}>
+     */
+    public static function everyEndpointProvider(): iterable
+    {
+        yield 'html' => [static fn (Client $c) => $c->html(url: 'https://example.com'), '/html'];
+        yield 'text' => [static fn (Client $c) => $c->text(url: 'https://example.com'), '/text'];
+        yield 'selected' => [static fn (Client $c) => $c->selected(url: 'https://example.com', selector: 'h1'), '/selected'];
+        yield 'selectedMultiple' => [static fn (Client $c) => $c->selectedMultiple(url: 'https://example.com', selectors: ['h1']), '/selected-multiple'];
+        yield 'question' => [static fn (Client $c) => $c->question(url: 'https://example.com', question: 'q'), '/ai/question'];
+        yield 'fields' => [static fn (Client $c) => $c->fields(url: 'https://example.com', fields: ['t' => 'T']), '/ai/fields'];
+        yield 'serp' => [static fn (Client $c) => $c->serp(q: 'coffee'), '/serp'];
+        yield 'data' => [static fn (Client $c) => $c->data(url: 'https://example.com'), '/data'];
+        yield 'account' => [static fn (Client $c) => $c->account(), '/account'];
+    }
+
+    /**
+     * @param \Closure(Client): mixed $call
+     */
+    #[DataProvider('everyEndpointProvider')]
+    public function testTransportErrorsNeverLeakApiKey(\Closure $call, string $path): void
+    {
+        $this->http->addException($this->guzzleConnectException('cURL error 6: Could not resolve host: api.webscraping.ai', $path));
+        $this->http->addException($this->guzzleConnectException('cURL error 28: Operation timed out after 5001 milliseconds with 0 bytes received', $path));
+        $this->http->addException(new \RuntimeException("stream_socket_client(): unable to connect for https://api.webscraping.ai{$path}?api_key=test-key"));
+
+        foreach ([ApiConnectionException::class, ApiTimeoutException::class, ApiConnectionException::class] as $expected) {
+            try {
+                $call($this->client);
+                self::fail("Expected {$expected}");
+            } catch (\Throwable $exception) {
+                self::assertInstanceOf($expected, $exception);
+                self::assertStringContainsString('api_key=[REDACTED]', $exception->getMessage());
+                $this->assertNoApiKeyInChain($exception);
+            }
+        }
+    }
+
+    public function testRealGuzzleUnresolvableHostDoesNotLeakApiKey(): void
+    {
+        $client = new Client(
+            apiKey: 'test-key-real-guzzle',
+            baseUrl: 'https://nonexistent-host-zzz.invalid',
+            timeout: 5.0,
+            connectTimeout: 5.0,
+        );
+
+        try {
+            $client->data(url: 'https://www.youtube.com/watch?v=x');
+            self::fail('Expected a transport exception');
+        } catch (ApiConnectionException|ApiTimeoutException $exception) {
+            self::assertStringContainsString('nonexistent-host-zzz.invalid', $exception->getMessage());
+            for ($e = $exception; $e !== null; $e = $e->getPrevious()) {
+                self::assertStringNotContainsString('test-key-real-guzzle', $e->getMessage());
+                self::assertStringNotContainsString('test-key-real-guzzle', (string) $e);
+            }
+        }
+    }
+
+    private function assertNoApiKeyInChain(\Throwable $exception): void
+    {
+        for ($e = $exception; $e !== null; $e = $e->getPrevious()) {
+            self::assertStringNotContainsString('test-key', $e->getMessage());
+            self::assertStringNotContainsString('test-key', (string) $e);
+        }
+    }
+
     /**
      * @return iterable<string, array{\Closure(Client): mixed}>
      */
     public static function jsonEndpointProvider(): iterable
     {
+        yield 'data' => [static fn (Client $c) => $c->data(url: 'https://www.youtube.com/watch?v=x')];
         yield 'serp' => [static fn (Client $c) => $c->serp(q: 'coffee')];
         yield 'fields' => [static fn (Client $c) => $c->fields(url: 'https://example.com', fields: ['title' => 'Title'])];
         yield 'account' => [static fn (Client $c) => $c->account()];

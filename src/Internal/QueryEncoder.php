@@ -25,7 +25,7 @@ namespace WebScrapingAI\Internal;
 final class QueryEncoder
 {
     /**
-     * @param array<string, mixed> $params Parameter map. List arrays expand without brackets;
+     * @param array<int|string, mixed> $params Parameter map (int keys are sent as strings). List arrays expand without brackets;
      *                                     associative arrays expand as deepObject; scalars are flat.
      * @return string URL-encoded query string with no leading `?`. Empty when all params are null.
      */
@@ -44,7 +44,7 @@ final class QueryEncoder
                         if ($item === null) {
                             continue;
                         }
-                        $pairs[] = self::pair($key, $item);
+                        $pairs[] = self::pair((string) $key, $item);
                     }
                 } else {
                     foreach ($value as $subKey => $subValue) {
@@ -58,7 +58,7 @@ final class QueryEncoder
                 continue;
             }
 
-            $pairs[] = self::pair($key, $value);
+            $pairs[] = self::pair((string) $key, $value);
         }
 
         return implode('&', $pairs);
