@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Hand-run smoke test against the live API. Not part of the test suite —
- * costs ~17 credits per full sweep.
+ * costs ~32 credits per full sweep (the SERP call alone is 15).
  *
  * Usage:
  *   WEBSCRAPING_AI_KEY=... php bin/smoke.php
@@ -33,6 +33,7 @@ $cases = [
     'selected_multiple' => fn () => $client->selectedMultiple(url: $target, selectors: ['h1', 'p']),
     'question'          => fn () => $client->question(url: $target, question: 'What is this page about? Answer in one sentence.'),
     'fields'            => fn () => $client->fields(url: $target, fields: ['title' => 'Page title', 'description' => 'Short description']),
+    'serp'              => fn () => $client->serp(q: 'coffee machines'),
 ];
 
 $failures = 0;

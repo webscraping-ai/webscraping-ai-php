@@ -74,6 +74,22 @@ $account = $client->account();
 
 All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `proxy`, `country`, `custom_proxy`, `device`, `error_on_404`, `error_on_redirect`, `js_script`, …) are PHP named arguments. See [the API docs](https://webscraping.ai/docs) for the full parameter reference.
 
+## Search engine results (SERP)
+
+`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1-based, 10 results per page). Flat 15 credits per search; failed searches are not charged.
+
+```php
+$serp = $client->serp(q: 'coffee machines', gl: 'us', hl: 'en', page: 1);
+
+foreach ($serp['organic_results'] as $result) {
+    printf("%d. %s — %s\n", $result['position'], $result['title'], $result['link']);
+}
+
+$nextPage = $serp['pagination']['next'] ?? null; // absent on the last page
+```
+
+The decoded array has `search_parameters`, `search_information`, `organic_results` (`position`, `title`, `link`, `domain`, `displayed_link`, and optionally `snippet` / `date`), `related_searches` (optional) and `pagination`. Optional keys are omitted rather than set to `null`.
+
 ## Bring your own HTTP client
 
 By default, the client builds its own transport. If Guzzle is installed it is used with a request deadline applied (see [Timeouts](#timeouts)); otherwise `php-http/discovery` resolves whatever PSR-18 client is installed. To pin a specific client, pass it explicitly:

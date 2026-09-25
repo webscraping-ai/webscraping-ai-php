@@ -33,7 +33,7 @@ use WebScrapingAI\Internal\QueryEncoder;
  */
 final class Client
 {
-    public const VERSION = '4.0.2';
+    public const VERSION = '4.1.0';
 
     public const DEFAULT_BASE_URL = 'https://api.webscraping.ai';
 
@@ -377,6 +377,46 @@ final class Client
             'error_on_404' => $errorOn404,
             'error_on_redirect' => $errorOnRedirect,
             'js_script' => $jsScript,
+        ]);
+
+        \assert(is_array($result));
+
+        return $result;
+    }
+
+    /**
+     * Search engine results (SERP) for a query.
+     *
+     * Query-shaped, not URL-shaped: none of the page-scraping options (js, proxy,
+     * country, headers, timeout, ...) apply. Flat 15 credits per search; failed
+     * searches are not charged. Returns the decoded `SerpResult` JSON
+     * (`search_parameters`, `search_information`, `organic_results`,
+     * `related_searches`, `pagination`); optional keys may be absent.
+     *
+     * @param string      $q      Search query (required, non-empty).
+     * @param string|null $engine Search engine; currently only `"google"` (the API default).
+     * @param string|null $gl     Two-letter country code (API default `"us"`).
+     * @param string|null $hl     Two-letter language code (API default `"en"`).
+     * @param int|null    $page   Results page number, 1-based (API default 1).
+     * @return array<int|string, mixed>
+     */
+    public function serp(
+        string $q,
+        ?string $engine = null,
+        ?string $gl = null,
+        ?string $hl = null,
+        ?int $page = null,
+    ): array {
+        if ($q === '') {
+            throw new \InvalidArgumentException('q must be a non-empty string');
+        }
+
+        $result = $this->get('/serp', [
+            'q' => $q,
+            'engine' => $engine,
+            'gl' => $gl,
+            'hl' => $hl,
+            'page' => $page,
         ]);
 
         \assert(is_array($result));

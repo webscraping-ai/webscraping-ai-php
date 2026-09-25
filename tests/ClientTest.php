@@ -210,6 +210,70 @@ final class ClientTest extends TestCase
         self::assertSame(['api_key' => 'test-key'], $params);
     }
 
+    public function testSerpSendsQueryParametersAndReturnsDecodedJson(): void
+    {
+        $serp = [
+            'search_parameters' => ['engine' => 'google', 'q' => 'coffee machines', 'gl' => 'de', 'hl' => 'de', 'page' => 2],
+            'search_information' => ['query_displayed' => 'coffee machines', 'organic_results_state' => 'Results for exact spelling'],
+            'organic_results' => [
+                ['position' => 1, 'title' => 'Best', 'link' => 'https://example.com/', 'domain' => 'example.com', 'displayed_link' => 'example.com'],
+            ],
+            'pagination' => ['current' => 2, 'next' => 3],
+        ];
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], json_encode($serp, JSON_THROW_ON_ERROR)));
+
+        $result = $this->client->serp(q: 'coffee machines', engine: 'google', gl: 'de', hl: 'de', page: 2);
+
+        self::assertSame($serp, $result);
+
+        $request = $this->lastRequest();
+        self::assertSame('GET', $request->getMethod());
+        self::assertSame('/serp', $request->getUri()->getPath());
+        self::assertStringContainsString('q=coffee%20machines', $request->getUri()->getQuery());
+        self::assertSame([
+            'q' => 'coffee machines',
+            'engine' => 'google',
+            'gl' => 'de',
+            'hl' => 'de',
+            'page' => '2',
+            'api_key' => 'test-key',
+        ], $this->parseQuery($request));
+    }
+
+    public function testSerpOmitsUnsetOptionalParameters(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee');
+
+        self::assertSame(['q' => 'coffee', 'api_key' => 'test-key'], $this->parseQuery($this->lastRequest()));
+    }
+
+    public function testSerpRejectsEmptyQuery(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        try {
+            $this->client->serp(q: '');
+        } finally {
+            self::assertEmpty($this->http->getRequests());
+        }
+    }
+
+    public function testSerpErrorWithoutScrapingEnvelopeMapsToTypedException(): void
+    {
+        $this->http->addResponse(new Response(402, ['Content-Type' => 'application/json'], '{"message":"Not enough credits"}'));
+
+        try {
+            $this->client->serp(q: 'coffee');
+            self::fail('Expected PaymentRequiredException');
+        } catch (PaymentRequiredException $exception) {
+            self::assertSame(402, $exception->status);
+            self::assertSame('Not enough credits', $exception->getMessage());
+            self::assertNull($exception->statusCode);
+        }
+    }
+
     public function testUserAgentHeaderIsSet(): void
     {
         $this->http->addResponse(new Response(200, ['Content-Type' => 'text/plain'], ''));
