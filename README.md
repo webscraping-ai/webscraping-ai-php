@@ -76,7 +76,9 @@ All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `
 
 ## Search engine results (SERP)
 
-`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1-based, 10 results per page). Flat 15 credits per search; failed searches are not charged.
+`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1-based, 10 results per page; the server caps it at 100). Flat 15 credits per search; failed searches are not charged.
+
+The client validates before sending: an empty or whitespace-only `q`, or a `page` below 1, throws `\InvalidArgumentException` and no request (or charge) is made — the server would otherwise silently coerce a bad `page` to 1 and bill the search.
 
 ```php
 $serp = $client->serp(q: 'coffee machines', gl: 'us', hl: 'en', page: 1);

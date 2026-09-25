@@ -260,6 +260,109 @@ final class ClientTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function blankQueryProvider(): iterable
+    {
+        yield 'space' => [' '];
+        yield 'mixed whitespace' => [" \t\n "];
+    }
+
+    #[DataProvider('blankQueryProvider')]
+    public function testSerpRejectsWhitespaceOnlyQuery(string $q): void
+    {
+        try {
+            $this->client->serp(q: $q);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString('q must be', $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    public function testSerpSendsQueryUntrimmed(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: '  coffee ');
+
+        self::assertSame('  coffee ', $this->parseQuery($this->lastRequest())['q']);
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function invalidPageProvider(): iterable
+    {
+        yield 'zero' => [0];
+        yield 'negative' => [-1];
+        yield 'very negative' => [-3];
+    }
+
+    #[DataProvider('invalidPageProvider')]
+    public function testSerpRejectsPageBelowOne(int $page): void
+    {
+        try {
+            $this->client->serp(q: 'coffee', page: $page);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertStringContainsString('page must be', $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    public function testSerpRejectsNonIntegerPage(): void
+    {
+        // The `?int` parameter type is the non-integer guard: under strict_types a float
+        // never reaches the client (and so never reaches the server as page 1).
+        $this->expectException(\TypeError::class);
+
+        try {
+            $this->client->serp(q: 'coffee', page: 1.5);
+        } finally {
+            self::assertEmpty($this->http->getRequests());
+        }
+    }
+
+    public function testSerpAcceptsPageOne(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee', page: 1);
+
+        self::assertSame('1', $this->parseQuery($this->lastRequest())['page']);
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(Client): mixed}>
+     */
+    public static function jsonEndpointProvider(): iterable
+    {
+        yield 'serp' => [static fn (Client $c) => $c->serp(q: 'coffee')];
+        yield 'fields' => [static fn (Client $c) => $c->fields(url: 'https://example.com', fields: ['title' => 'Title'])];
+        yield 'account' => [static fn (Client $c) => $c->account()];
+        yield 'selectedMultiple' => [static fn (Client $c) => $c->selectedMultiple(url: 'https://example.com', selectors: ['h1'])];
+    }
+
+    /**
+     * @param \Closure(Client): mixed $call
+     */
+    #[DataProvider('jsonEndpointProvider')]
+    public function testJsonEndpointsRaiseApiExceptionOnNonJsonSuccessBody(\Closure $call): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'text/html'], '<html>oops</html>'));
+
+        try {
+            $call($this->client);
+            self::fail('Expected ApiException');
+        } catch (ApiException $exception) {
+            self::assertInstanceOf(\WebScrapingAI\Exception\WebScrapingAIException::class, $exception);
+            self::assertSame(200, $exception->status);
+            self::assertSame('<html>oops</html>', $exception->responseBody);
+        }
+    }
+
     public function testSerpErrorWithoutScrapingEnvelopeMapsToTypedException(): void
     {
         $this->http->addResponse(new Response(402, ['Content-Type' => 'application/json'], '{"message":"Not enough credits"}'));

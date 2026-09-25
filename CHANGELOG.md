@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `Client::serp()` for the new `/serp` endpoint: parsed search engine results for a query (`q`, optional `engine`, `gl`, `hl`, `page`). Returns the decoded `SerpResult` JSON. Flat 15 credits per search; failed searches are not charged.
+- `serp()` validates its input before sending: whitespace-only `q` and `page` < 1 throw `\InvalidArgumentException` (the server would silently treat an invalid page as page 1 and still charge). The server caps `page` at 100.
+- `bin/smoke.php` now asserts on result shape (non-empty results, SERP `organic_results` and echoed `q`, a non-empty `selected_multiple` match, `fields` `result` key), runs page tools with `js=false` + datacenter proxy (~31 credits), catches every exception per case, redacts the API key from failure output and prints single-line previews.
+
+### Fixed
+
+- `fields()`, `selectedMultiple()`, `serp()` and `account()` no longer fail with an `assert`/`TypeError` when a 2xx response isn't JSON; they now throw `ApiException` (status 200, raw body in `$responseBody`), keeping every failure inside the `WebScrapingAIException` hierarchy.
 
 ## [4.0.2] — 2026-07-17
 

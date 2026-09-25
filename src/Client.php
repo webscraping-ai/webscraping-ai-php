@@ -186,7 +186,7 @@ final class Client
         ?bool $errorOnRedirect = null,
         ?string $jsScript = null,
     ): array {
-        $result = $this->get('/ai/fields', [
+        return $this->getArray('/ai/fields', [
             'url' => $url,
             'fields' => $fields,
             'headers' => $headers,
@@ -202,10 +202,6 @@ final class Client
             'error_on_redirect' => $errorOnRedirect,
             'js_script' => $jsScript,
         ]);
-
-        \assert(is_array($result));
-
-        return $result;
     }
 
     /**
@@ -362,7 +358,7 @@ final class Client
         ?bool $errorOnRedirect = null,
         ?string $jsScript = null,
     ): array {
-        $result = $this->get('/selected-multiple', [
+        return $this->getArray('/selected-multiple', [
             'selectors' => $selectors,
             'url' => $url,
             'headers' => $headers,
@@ -378,10 +374,6 @@ final class Client
             'error_on_redirect' => $errorOnRedirect,
             'js_script' => $jsScript,
         ]);
-
-        \assert(is_array($result));
-
-        return $result;
     }
 
     /**
@@ -393,12 +385,15 @@ final class Client
      * (`search_parameters`, `search_information`, `organic_results`,
      * `related_searches`, `pagination`); optional keys may be absent.
      *
-     * @param string      $q      Search query (required, non-empty).
+     * @param string      $q      Search query (required, not empty or whitespace-only; sent as given).
      * @param string|null $engine Search engine; currently only `"google"` (the API default).
      * @param string|null $gl     Two-letter country code (API default `"us"`).
      * @param string|null $hl     Two-letter language code (API default `"en"`).
-     * @param int|null    $page   Results page number, 1-based (API default 1).
+     * @param int|null    $page   Results page number, 1-based (API default 1). Must be >= 1; the
+     *                            server caps it at 100.
      * @return array<int|string, mixed>
+     *
+     * @throws \InvalidArgumentException When `q` is empty/whitespace-only or `page` is < 1 (no request is sent).
      */
     public function serp(
         string $q,
@@ -407,21 +402,20 @@ final class Client
         ?string $hl = null,
         ?int $page = null,
     ): array {
-        if ($q === '') {
-            throw new \InvalidArgumentException('q must be a non-empty string');
+        if (trim($q) === '') {
+            throw new \InvalidArgumentException('q must be a non-empty, non-whitespace string');
+        }
+        if ($page !== null && $page < 1) {
+            throw new \InvalidArgumentException('page must be an integer >= 1');
         }
 
-        $result = $this->get('/serp', [
+        return $this->getArray('/serp', [
             'q' => $q,
             'engine' => $engine,
             'gl' => $gl,
             'hl' => $hl,
             'page' => $page,
         ]);
-
-        \assert(is_array($result));
-
-        return $result;
     }
 
     /**
@@ -431,10 +425,29 @@ final class Client
      */
     public function account(): array
     {
-        $result = $this->get('/account', []);
-        \assert(is_array($result));
+        return $this->getArray('/account', []);
+    }
 
-        return $result;
+    /**
+     * Like get(), for endpoints that always answer with JSON. A 2xx response whose
+     * body isn't a JSON object/array raises ApiException instead of leaking a
+     * TypeError out of the SDK's exception hierarchy.
+     *
+     * @param array<string, mixed> $params
+     * @return array<int|string, mixed>
+     */
+    private function getArray(string $path, array $params): array
+    {
+        $result = $this->get($path, $params);
+        if (is_array($result)) {
+            return $result;
+        }
+
+        throw new ApiException(
+            message: "Expected a JSON response from {$path}, got a non-JSON body",
+            status: 200,
+            responseBody: $result,
+        );
     }
 
     /**
