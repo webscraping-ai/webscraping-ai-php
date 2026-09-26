@@ -29,8 +29,8 @@ composer require webscraping-ai/webscraping-ai-php
 
 ## Quick start
 
-[Sign up](https://webscraping.ai/auth/sign_up) to get an API key — the free
-trial includes 2,000 credits, no credit card required. Your key lives in the
+[Sign up](https://webscraping.ai/auth/sign_up) to get an API key — a free
+trial, no credit card required. Your key lives in the
 [dashboard](https://webscraping.ai/dashboard).
 
 ```php
@@ -79,7 +79,7 @@ All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `
 
 ## Search engine results (SERP)
 
-`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1–100, 10 results per page; the server rejects values above 100 with a 400). Flat 15 credits per search; failed searches are not charged.
+`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1–100, 10 results per page; the server rejects values above 100 with a 400). Priced per search (see [pricing](https://webscraping.ai/docs#serp)); failed searches are not charged.
 
 The client validates before sending: an empty or whitespace-only `q`, or a `page` below 1, throws `\InvalidArgumentException` and no request (or charge) is made. The server also rejects a bad `page` with a 400 (not billed); checking client-side saves the round trip.
 
@@ -97,7 +97,7 @@ The decoded array has `search_parameters`, `search_information`, `organic_result
 
 ## Structured data for supported sites
 
-`data()` returns structured JSON for a public page on a supported site — pass the page's normal URL, e.g. a YouTube video/channel/playlist, TikTok video/profile, X (Twitter) post/profile, LinkedIn company/job/profile, Instagram post/reel/profile or Reddit post/subreddit/user. The site (`provider`) and page kind (`type`) are detected from the URL. 15 credits per request (including results that parse empty or no longer exist); failed fetches are not charged.
+`data()` returns structured JSON for a public page on a supported site — pass the page's normal URL, e.g. a YouTube video/channel/playlist, TikTok video/profile, X (Twitter) post/profile, LinkedIn company/job/profile, Instagram post/reel/profile or Reddit post/subreddit/user. The site (`provider`) and page kind (`type`) are detected from the URL. Priced per site (see [pricing](https://webscraping.ai/docs#data)), including results that parse empty or no longer exist; unsupported URLs and failed fetches are not charged.
 
 More sites and page types are added on the server over time and work without upgrading this package, so the client does **not** check which sites are supported — only that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request). An unsupported URL or page type returns a 400 that is not charged (`BadRequestException`). Its message lists what is supported. For other sites use `fields()`.
 

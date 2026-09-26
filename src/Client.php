@@ -386,8 +386,8 @@ final class Client
      * Search engine results (SERP) for a query.
      *
      * Query-shaped, not URL-shaped: none of the page-scraping options (js, proxy,
-     * country, headers, timeout, ...) apply. Flat 15 credits per search; failed
-     * searches are not charged. Returns the decoded `SerpResult` JSON
+     * country, headers, timeout, ...) apply. Priced per search (see
+     * https://webscraping.ai/docs#serp); failed searches are not charged. Returns the decoded `SerpResult` JSON
      * (`search_parameters`, `search_information`, `organic_results`,
      * `related_searches`, `pagination`); optional keys may be absent.
      *
@@ -435,8 +435,9 @@ final class Client
      * charged (`BadRequestException`). Its message lists what is supported.
      *
      * URL-shaped but not a page-scraping call: none of the scraping options (js,
-     * proxy, headers, timeout, device, ...) apply. 15 credits per request,
-     * including `parse_failed` / `not_found` results; failed fetches are refunded.
+     * proxy, headers, timeout, device, ...) apply. Priced per site (see
+     * https://webscraping.ai/docs#data), including `parse_failed` / `not_found`
+     * results; unsupported URLs and failed fetches are not charged.
      *
      * Returns the decoded `DataResult` JSON: `request_parameters` (`url`, `provider`,
      * `type` — open sets of strings), `parse_status` (`ok`, `parse_failed` or
