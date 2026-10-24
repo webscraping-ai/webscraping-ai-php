@@ -79,21 +79,40 @@ All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `
 
 ## Search engine results (SERP)
 
-`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply — only `q` (required), `engine` (`"google"`, the default), `gl` (country, default `"us"`), `hl` (language, default `"en"`) and `page` (1–100, 10 results per page; the server rejects values above 100 with a 400). Priced per search (see [pricing](https://webscraping.ai/docs#serp)); failed searches are not charged.
+`serp()` returns parsed Google results for a query. It is query-shaped rather than URL-shaped, so none of the page-scraping parameters above apply. The options are `q` (required), `engine` (`"google"`, the default), `gl` (country), `hl` (language, default `"en"`), `page` (1–100, 10 results per page; the server rejects values above 100 with a 400), `pages`, `location`, `uule`, `lat`, `lon` and `radius`. Billed per results page returned (see [pricing](https://webscraping.ai/docs#serp)); failed searches are not charged.
 
-The client validates before sending: an empty or whitespace-only `q`, or a `page` below 1, throws `\InvalidArgumentException` and no request (or charge) is made. The server also rejects a bad `page` with a 400 (not billed); checking client-side saves the round trip.
+Every search runs from one fixed location: `location`, `lat` + `lon`, or `uule`, otherwise the capital of the `gl` country. So repeats and later pages stay consistent. `gl` defaults to the location's country (`"us"` when there is none). `pages` (1–5) fetches consecutive pages starting at `page` as one de-duplicated list, billed per page returned: `position` counts through the combined list and each result gets a `page` key.
+
+- `location` — a name such as `"Austin,Texas,United States"` or `"Austin, TX"` (large cities also match local names, e.g. `"Москва"`), or an `id` from `serpLocations()`. An unknown name returns a 400 (not charged).
+- `uule` — a Google-encoded location (`w+CAIQICI…` or `a+…`).
+- `lat` / `lon` — the search origin in decimal degrees (both required together). Sent as a plain decimal rounded to 7 fractional digits.
+- `radius` — meters around `location` or `lat`/`lon`, 1–1000.
+
+The client validates before sending: an empty or whitespace-only `q`, a `page`, `pages` or `radius` below 1, or a NAN/infinite `lat`/`lon` throws `\InvalidArgumentException` and no request (or charge) is made. Ranges and combinations (`location` with `uule`, `lat` without `lon`, …) are checked by the server, which rejects them with a 400 (not billed).
 
 ```php
-$serp = $client->serp(q: 'coffee machines', gl: 'us', hl: 'en', page: 1);
+$serp = $client->serp(q: 'coffee machines', location: 'Austin, TX', pages: 2);
+
+echo $serp['search_parameters']['location_used'], "\n"; // "Austin,Texas,United States"
 
 foreach ($serp['organic_results'] as $result) {
-    printf("%d. %s — %s\n", $result['position'], $result['title'], $result['link']);
+    printf("%d. [p%d] %s — %s\n", $result['position'], $result['page'], $result['title'], $result['link']);
 }
 
 $nextPage = $serp['pagination']['next'] ?? null; // absent on the last page
 ```
 
-The decoded array has `search_parameters`, `search_information`, `organic_results` (`position`, `title`, `link`, `domain`, `displayed_link`, and optionally `snippet` / `date`), `related_searches` (optional) and `pagination`. Optional keys are omitted rather than set to `null`.
+The decoded array has `search_parameters` (with `location_requested`, `location_used`, `lat`, `lon`, `radius` and `pages` when they apply), `search_information`, `organic_results` (`position`, `title`, `link`, `domain`, `displayed_link`, and optionally `snippet` / `date` / `page`), `related_searches` (optional) and `pagination` (with `pages_returned` when `pages` > 1). Optional keys are omitted rather than set to `null`.
+
+### Search locations
+
+`serpLocations()` looks up names for `location`. It is free and needs no API key on the server. It returns up to 10 locations (`limit`, 1–10), most populous first, each with `id`, `google_id`, `google_parent_id` (absent or `null` for countries), `name`, `canonical_name`, `country_code`, `target_type` (e.g. `City`, `State`, `Country`), `reach` (approximate population) and `gps` (`[longitude, latitude]`). It matches English names (e.g. `petersburg`). Pass `canonical_name` (or `id`) to `serp()` as `location`:
+
+```php
+$locations = $client->serpLocations(q: 'austin', limit: 3);
+
+$serp = $client->serp(q: 'coffee machines', location: $locations[0]['canonical_name']);
+```
 
 ## Structured data for supported sites
 

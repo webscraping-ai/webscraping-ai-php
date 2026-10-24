@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.3.0] — 2026-10-24
+### Added
+
+- `serp()` accepts `pages`, `location`, `uule`, `lat`, `lon` and `radius`. Every search runs from one fixed location (`location`, `lat` + `lon` or `uule`, otherwise the capital of the `gl` country), so repeats and later pages stay consistent; `gl` defaults to the location's country. `pages` (1–5) fetches consecutive pages as one de-duplicated list, billed per results page returned (see https://webscraping.ai/docs#serp). The response adds `search_parameters.pages`/`location_requested`/`location_used`/`lat`/`lon`/`radius`, `organic_results[].page` and `pagination.pages_returned` when they apply.
+- `serp()` validates the new options before sending: `pages` or `radius` < 1 and a NAN/infinite `lat`/`lon` throw `\InvalidArgumentException`. Ranges and combinations are left to the server (a 400, not billed).
+- `lat`/`lon` are sent as plain decimals rounded to 7 fractional digits (`1e-7` → `0.0000001`, `48.0` → `48`), independent of the `precision` ini setting; PHP's own float-to-string switches to exponent form (`1.0E-7`), which the API rejects.
+- `Client::serpLocations(?string $q = null, ?int $limit = null)` for the new `/serp/locations` endpoint: look up names for `location` (free; `limit` < 1 throws `\InvalidArgumentException`). Returns the decoded list of `SerpLocation` objects.
+- `bin/smoke.php` adds a `serp` call with `location: 'Austin, TX', pages: 2` (asserts `location_used` contains "Austin" and non-empty results) and a `serpLocations(q: 'austin', limit: 3)` call (asserts the first `canonical_name` contains "Austin").
+
 ### Changed
 
 - Docs: stop stating credit prices (they're set server-side and change); link to https://webscraping.ai/docs pricing instead.

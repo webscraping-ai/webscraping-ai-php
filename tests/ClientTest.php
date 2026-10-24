@@ -334,6 +334,244 @@ final class ClientTest extends TestCase
         self::assertSame('1', $this->parseQuery($this->lastRequest())['page']);
     }
 
+    public function testSerpSendsLocationAndPagesParameters(): void
+    {
+        $serp = [
+            'search_parameters' => [
+                'engine' => 'google', 'q' => 'coffee machines', 'gl' => 'us', 'hl' => 'en', 'page' => 1, 'pages' => 2,
+                'location_requested' => 'Austin, TX', 'location_used' => 'Austin,Texas,United States', 'radius' => 500,
+            ],
+            'organic_results' => [
+                ['position' => 1, 'title' => 'A', 'link' => 'https://a.example/', 'domain' => 'a.example', 'displayed_link' => 'a.example', 'page' => 1],
+                ['position' => 11, 'title' => 'B', 'link' => 'https://b.example/', 'domain' => 'b.example', 'displayed_link' => 'b.example', 'page' => 2],
+            ],
+            'pagination' => ['current' => 2, 'next' => 3, 'pages_returned' => 2],
+        ];
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], json_encode($serp, JSON_THROW_ON_ERROR)));
+
+        $result = $this->client->serp(q: 'coffee machines', pages: 2, location: 'Austin, TX', radius: 500);
+
+        self::assertSame($serp, $result);
+        self::assertStringContainsString('location=Austin%2C%20TX', $this->lastRequest()->getUri()->getQuery());
+        self::assertSame([
+            'q' => 'coffee machines',
+            'pages' => '2',
+            'location' => 'Austin, TX',
+            'radius' => '500',
+            'api_key' => 'test-key',
+        ], $this->parseQuery($this->lastRequest()));
+    }
+
+    public function testSerpSendsLocationAndUuleUntrimmedAndUnvalidated(): void
+    {
+        // Mutual exclusivity is the server's job (free 400): both go out as given.
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee', location: ' Москва ', uule: 'w+CAIQICIGQXVzdGlu');
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame(' Москва ', $params['location']);
+        self::assertSame('w+CAIQICIGQXVzdGlu', $params['uule']);
+    }
+
+    /**
+     * @return iterable<string, array{float, string}>
+     */
+    public static function coordinateWireFormatProvider(): iterable
+    {
+        yield 'latitude' => [30.2672, '30.2672'];
+        yield 'negative longitude' => [-97.7431, '-97.7431'];
+        yield 'tiny (exponent form in PHP)' => [1e-7, '0.0000001'];
+        yield 'tiny negative' => [-1e-5, '-0.00001'];
+        yield 'below 7 digits rounds to zero' => [1e-9, '0'];
+        yield 'negative below 7 digits' => [-1e-9, '0'];
+        yield 'whole number' => [48.0, '48'];
+        yield 'negative whole number' => [-180.0, '-180'];
+        yield 'zero' => [0.0, '0'];
+        yield 'negative zero' => [-0.0, '0'];
+        yield 'rounded to 7 digits' => [12.345678949, '12.3456789'];
+        yield 'trailing zeros trimmed' => [10.5, '10.5'];
+    }
+
+    #[DataProvider('coordinateWireFormatProvider')]
+    public function testSerpSendsLatLonAsPlainDecimal(float $value, string $wire): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee', lat: $value, lon: $value);
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame($wire, $params['lat']);
+        self::assertSame($wire, $params['lon']);
+        self::assertMatchesRegularExpression('/^-?\d+(\.\d+)?$/', $params['lat']);
+    }
+
+    public function testSerpLatLonWireFormatIgnoresPrecisionIni(): void
+    {
+        $previous = ini_set('precision', '3');
+        $serializePrevious = ini_set('serialize_precision', '3');
+        try {
+            $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+            $this->client->serp(q: 'coffee', lat: 30.2672, lon: -97.7431);
+        } finally {
+            ini_set('precision', (string) $previous);
+            ini_set('serialize_precision', (string) $serializePrevious);
+        }
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame('30.2672', $params['lat']);
+        self::assertSame('-97.7431', $params['lon']);
+    }
+
+    public function testSerpAcceptsIntegerLatLon(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee', lat: 48, lon: 2, radius: 1);
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame('48', $params['lat']);
+        self::assertSame('2', $params['lon']);
+        self::assertSame('1', $params['radius']);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, float>, string}>
+     */
+    public static function nonFiniteCoordinateProvider(): iterable
+    {
+        yield 'lat NAN' => [['lat' => NAN, 'lon' => 1.0], 'lat must be a finite number'];
+        yield 'lat INF' => [['lat' => INF, 'lon' => 1.0], 'lat must be a finite number'];
+        yield 'lon -INF' => [['lat' => 1.0, 'lon' => -INF], 'lon must be a finite number'];
+        yield 'lon NAN alone' => [['lon' => NAN], 'lon must be a finite number'];
+    }
+
+    /**
+     * @param array<string, float> $coordinates
+     */
+    #[DataProvider('nonFiniteCoordinateProvider')]
+    public function testSerpRejectsNonFiniteLatLon(array $coordinates, string $message): void
+    {
+        try {
+            $this->client->serp(...['q' => 'coffee', ...$coordinates]);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertSame($message, $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function invalidCountProvider(): iterable
+    {
+        yield 'pages zero' => ['pages', 0];
+        yield 'pages negative' => ['pages', -2];
+        yield 'radius zero' => ['radius', 0];
+        yield 'radius negative' => ['radius', -1];
+    }
+
+    #[DataProvider('invalidCountProvider')]
+    public function testSerpRejectsPagesOrRadiusBelowOne(string $name, int $value): void
+    {
+        try {
+            $this->client->serp(...['q' => 'coffee', $name => $value]);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertSame("{$name} must be an integer >= 1", $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    public function testSerpRejectsNonIntegerPages(): void
+    {
+        $this->expectException(\TypeError::class);
+
+        try {
+            $this->client->serp(q: 'coffee', pages: 1.5);
+        } finally {
+            self::assertEmpty($this->http->getRequests());
+        }
+    }
+
+    public function testSerpDoesNotCheckServerSideRanges(): void
+    {
+        // pages > 5, radius > 1000 and lat outside -90..90 are the server's free 400s.
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '{"organic_results":[]}'));
+
+        $this->client->serp(q: 'coffee', pages: 6, lat: 91.0, lon: 0.0, radius: 5000);
+
+        $params = $this->parseQuery($this->lastRequest());
+        self::assertSame(['6', '91', '0', '5000'], [$params['pages'], $params['lat'], $params['lon'], $params['radius']]);
+    }
+
+    public function testSerpLocationsSendsQueryAndReturnsDecodedList(): void
+    {
+        $locations = [
+            [
+                'id' => '1026201', 'google_id' => 1026201, 'google_parent_id' => 21176, 'name' => 'Austin',
+                'canonical_name' => 'Austin,Texas,United States', 'country_code' => 'US', 'target_type' => 'City',
+                'reach' => 974447, 'gps' => [-97.7431, 30.2672],
+            ],
+            [
+                'id' => '2840', 'google_id' => 2840, 'google_parent_id' => null, 'name' => 'United States',
+                'canonical_name' => 'United States', 'country_code' => 'US', 'target_type' => 'Country',
+                'reach' => 331000000, 'gps' => [-77.0369, 38.9072],
+            ],
+        ];
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], json_encode($locations, JSON_THROW_ON_ERROR)));
+
+        $result = $this->client->serpLocations(q: 'austin', limit: 3);
+
+        self::assertSame($locations, $result);
+        $request = $this->lastRequest();
+        self::assertSame('GET', $request->getMethod());
+        self::assertSame('/serp/locations', $request->getUri()->getPath());
+        self::assertSame(['q' => 'austin', 'limit' => '3', 'api_key' => 'test-key'], $this->parseQuery($request));
+    }
+
+    public function testSerpLocationsOmitsUnsetParameters(): void
+    {
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '[]'));
+
+        self::assertSame([], $this->client->serpLocations());
+
+        self::assertSame(['api_key' => 'test-key'], $this->parseQuery($this->lastRequest()));
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function invalidLimitProvider(): iterable
+    {
+        yield 'zero' => [0];
+        yield 'negative' => [-1];
+    }
+
+    #[DataProvider('invalidLimitProvider')]
+    public function testSerpLocationsRejectsLimitBelowOne(int $limit): void
+    {
+        try {
+            $this->client->serpLocations(q: 'austin', limit: $limit);
+            self::fail('Expected InvalidArgumentException');
+        } catch (\InvalidArgumentException $exception) {
+            self::assertSame('limit must be an integer >= 1', $exception->getMessage());
+        }
+        self::assertEmpty($this->http->getRequests());
+    }
+
+    public function testSerpLocationsSendsLimitAboveServerMaximum(): void
+    {
+        // The server owns the upper bound (limit > 10 is a 400).
+        $this->http->addResponse(new Response(200, ['Content-Type' => 'application/json'], '[]'));
+
+        $this->client->serpLocations(limit: 11);
+
+        self::assertSame('11', $this->parseQuery($this->lastRequest())['limit']);
+    }
+
     public function testDataSendsQueryParametersAndReturnsDecodedJson(): void
     {
         $payload = [
@@ -573,6 +811,7 @@ final class ClientTest extends TestCase
         yield 'question' => [static fn (Client $c) => $c->question(url: 'https://example.com', question: 'q'), '/ai/question'];
         yield 'fields' => [static fn (Client $c) => $c->fields(url: 'https://example.com', fields: ['t' => 'T']), '/ai/fields'];
         yield 'serp' => [static fn (Client $c) => $c->serp(q: 'coffee'), '/serp'];
+        yield 'serpLocations' => [static fn (Client $c) => $c->serpLocations(q: 'austin'), '/serp/locations'];
         yield 'data' => [static fn (Client $c) => $c->data(url: 'https://example.com'), '/data'];
         yield 'account' => [static fn (Client $c) => $c->account(), '/account'];
     }
@@ -635,6 +874,7 @@ final class ClientTest extends TestCase
     {
         yield 'data' => [static fn (Client $c) => $c->data(url: 'https://www.youtube.com/watch?v=x')];
         yield 'serp' => [static fn (Client $c) => $c->serp(q: 'coffee')];
+        yield 'serpLocations' => [static fn (Client $c) => $c->serpLocations()];
         yield 'fields' => [static fn (Client $c) => $c->fields(url: 'https://example.com', fields: ['title' => 'Title'])];
         yield 'account' => [static fn (Client $c) => $c->account()];
         yield 'selectedMultiple' => [static fn (Client $c) => $c->selectedMultiple(url: 'https://example.com', selectors: ['h1'])];

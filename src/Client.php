@@ -32,7 +32,7 @@ use WebScrapingAI\Internal\QueryEncoder;
  */
 final class Client
 {
-    public const VERSION = '4.2.0';
+    public const VERSION = '4.3.0';
 
     public const DEFAULT_BASE_URL = 'https://api.webscraping.ai';
 
@@ -386,20 +386,40 @@ final class Client
      * Search engine results (SERP) for a query.
      *
      * Query-shaped, not URL-shaped: none of the page-scraping options (js, proxy,
-     * country, headers, timeout, ...) apply. Priced per search (see
+     * country, headers, timeout, ...) apply. Billed per results page returned (see
      * https://webscraping.ai/docs#serp); failed searches are not charged. Returns the decoded `SerpResult` JSON
      * (`search_parameters`, `search_information`, `organic_results`,
      * `related_searches`, `pagination`); optional keys may be absent.
      *
-     * @param string      $q      Search query (required, not empty or whitespace-only; sent as given).
-     * @param string|null $engine Search engine; currently only `"google"` (the API default).
-     * @param string|null $gl     Two-letter country code (API default `"us"`).
-     * @param string|null $hl     Two-letter language code (API default `"en"`).
-     * @param int|null    $page   Results page number, 1-based (API default 1). Must be >= 1; the
-     *                            server rejects > 100 with a 400 (not billed).
+     * Every search runs from one fixed location (`location`, `lat` + `lon` or `uule`,
+     * otherwise the capital of the `gl` country), so repeats and later pages stay
+     * consistent. With `pages` > 1, `organic_results` is one de-duplicated list whose
+     * `position` counts through it and whose results carry a `page` key.
+     *
+     * Combinations (`location` vs `uule` vs `lat` + `lon`, `radius` without a location)
+     * and ranges are checked by the server, which rejects them with a 400 (not billed).
+     *
+     * @param string      $q        Search query (required, not empty or whitespace-only; sent as given).
+     * @param string|null $engine   Search engine; currently only `"google"` (the API default).
+     * @param string|null $gl       Two-letter country code. Defaults to the country of `location`,
+     *                              `lat`/`lon` or `uule`, otherwise `"us"`.
+     * @param string|null $hl       Two-letter language code (API default `"en"`).
+     * @param int|null    $page     Results page number, 1-based (API default 1). Must be >= 1; the
+     *                              server rejects > 100 with a 400 (not billed).
+     * @param int|null    $pages    Number of consecutive pages to fetch from `page` on, as one
+     *                              de-duplicated list (server: 1 to 5). Must be >= 1.
+     * @param string|null $location Where the search runs from: a name such as `"Austin,Texas,United States"`
+     *                              or `"Austin, TX"`, or an id from serpLocations(). Sent as given; an
+     *                              unknown name is a 400 (not billed).
+     * @param string|null $uule     Google-encoded location (`w+CAIQICI…` or `a+…`).
+     * @param float|null  $lat      Latitude of the search origin in decimal degrees (requires `lon`).
+     * @param float|null  $lon      Longitude of the search origin in decimal degrees (requires `lat`).
+     * @param int|null    $radius   Radius in meters around `location` or `lat`/`lon` (server: 1 to 1000).
+     *                              Must be >= 1.
      * @return array<int|string, mixed>
      *
-     * @throws \InvalidArgumentException When `q` is empty/whitespace-only or `page` is < 1 (no request is sent).
+     * @throws \InvalidArgumentException When `q` is empty/whitespace-only, `page`, `pages` or `radius`
+     *                                   is < 1, or `lat`/`lon` is NAN or infinite (no request is sent).
      */
     public function serp(
         string $q,
@@ -407,12 +427,24 @@ final class Client
         ?string $gl = null,
         ?string $hl = null,
         ?int $page = null,
+        ?int $pages = null,
+        ?string $location = null,
+        ?string $uule = null,
+        ?float $lat = null,
+        ?float $lon = null,
+        ?int $radius = null,
     ): array {
         if (trim($q) === '') {
             throw new \InvalidArgumentException('q must be a non-empty, non-whitespace string');
         }
         if ($page !== null && $page < 1) {
             throw new \InvalidArgumentException('page must be an integer >= 1');
+        }
+        if ($pages !== null && $pages < 1) {
+            throw new \InvalidArgumentException('pages must be an integer >= 1');
+        }
+        if ($radius !== null && $radius < 1) {
+            throw new \InvalidArgumentException('radius must be an integer >= 1');
         }
 
         return $this->getArray('/serp', [
@@ -421,7 +453,68 @@ final class Client
             'gl' => $gl,
             'hl' => $hl,
             'page' => $page,
+            'pages' => $pages,
+            'location' => $location,
+            'uule' => $uule,
+            'lat' => self::coordinate('lat', $lat),
+            'lon' => self::coordinate('lon', $lon),
+            'radius' => $radius,
         ]);
+    }
+
+    /**
+     * Look up names for serp()'s `location` argument.
+     *
+     * Free and needs no API key on the server (the key is still sent, like on every
+     * call). Returns the decoded JSON list of `SerpLocation` objects, most populous
+     * first: `id` (string), `google_id`, `google_parent_id` (absent or null for
+     * countries), `name`, `canonical_name` (pass it, or `id`, as `location`),
+     * `country_code`, `target_type` (an open set, e.g. `City`, `State`, `Country`),
+     * `reach` (approximate population) and `gps` (`[longitude, latitude]`).
+     * Matches English names, e.g. `petersburg`.
+     *
+     * @param string|null $q     Part of a location name, e.g. `"austin"`. Without it, the most
+     *                           populous locations are returned.
+     * @param int|null    $limit Maximum number of locations to return (server: 1 to 10, 10 by
+     *                           default). Must be >= 1.
+     * @return array<int|string, mixed>
+     *
+     * @throws \InvalidArgumentException When `limit` is < 1 (no request is sent).
+     */
+    public function serpLocations(?string $q = null, ?int $limit = null): array
+    {
+        if ($limit !== null && $limit < 1) {
+            throw new \InvalidArgumentException('limit must be an integer >= 1');
+        }
+
+        return $this->getArray('/serp/locations', [
+            'q' => $q,
+            'limit' => $limit,
+        ]);
+    }
+
+    /**
+     * Format a latitude/longitude as the plain decimal the API accepts (`^-?\d+(\.\d+)?$`).
+     *
+     * `(string)` on a float depends on the `precision` ini setting and switches to
+     * exponent form for small values (`1.0E-7`), which the server rejects. This
+     * rounds to 7 fractional digits (about 1 cm) and trims trailing zeros, so
+     * `1e-7` → `"0.0000001"`, `48.0` → `"48"` and `1e-9` → `"0"`.
+     *
+     * @throws \InvalidArgumentException When the value is NAN or infinite.
+     */
+    private static function coordinate(string $name, ?float $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (!is_finite($value)) {
+            throw new \InvalidArgumentException("{$name} must be a finite number");
+        }
+
+        $text = rtrim(rtrim(number_format($value, 7, '.', ''), '0'), '.');
+
+        return $text === '-0' ? '0' : $text;
     }
 
     /**

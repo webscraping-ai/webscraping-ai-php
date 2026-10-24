@@ -5,11 +5,12 @@ declare(strict_types=1);
 /**
  * Hand-run smoke test against the live API. Not part of the test suite.
  *
- * Costs ~46 credits per full sweep: account (free), 4 page calls
- * (html/text/selected/selected_multiple) with js=false + datacenter proxy at
- * 1 credit each, question + fields at 6 each (datacenter, no JS), one SERP
- * search at 15, one /data call at 15, and one /data call on an unsupported
- * URL that the server must reject with a free 400 → 4 + 12 + 15 + 15 = 46.
+ * Costs ~76 credits per full sweep: account and serp_locations (free), 4 page
+ * calls (html/text/selected/selected_multiple) with js=false + datacenter proxy
+ * at 1 credit each, question + fields at 6 each (datacenter, no JS), one
+ * one-page SERP search at 15, one two-page located SERP search at 2 × 15, one
+ * /data call at 15, and one /data call on an unsupported URL that the server
+ * must reject with a free 400 → 4 + 12 + 15 + 30 + 15 = 76.
  *
  * Each case asserts on the shape of the result, not just the absence of an
  * exception; any failure prints a FAIL line and the script exits 1.
@@ -97,6 +98,31 @@ $cases = [
         $q = $r['search_parameters']['q'] ?? null;
         if ($q !== 'coffee machines') {
             return [$r, 'search_parameters.q is ' . var_export($q, true) . ', expected "coffee machines"'];
+        }
+
+        return [$r, null];
+    },
+    'serp_location' => function () use ($client) {
+        $r = $client->serp(q: 'coffee machines', location: 'Austin, TX', pages: 2);
+        if (!nonEmpty($r['organic_results'] ?? null)) {
+            return [$r, 'organic_results is missing or empty'];
+        }
+        $used = $r['search_parameters']['location_used'] ?? null;
+        if (!is_string($used) || !str_contains($used, 'Austin')) {
+            return [$r, 'search_parameters.location_used is ' . var_export($used, true) . ', expected it to contain "Austin"'];
+        }
+
+        return [$r, null];
+    },
+    'serp_locations' => function () use ($client) {
+        $r = $client->serpLocations(q: 'austin', limit: 3);
+        if (!nonEmpty($r)) {
+            return [$r, 'empty location list'];
+        }
+        $first = $r[0] ?? null;
+        $name = is_array($first) ? ($first['canonical_name'] ?? null) : null;
+        if (!is_string($name) || !str_contains($name, 'Austin')) {
+            return [$r, 'first canonical_name is ' . var_export($name, true) . ', expected it to contain "Austin"'];
         }
 
         return [$r, null];
