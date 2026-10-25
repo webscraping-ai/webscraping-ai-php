@@ -23,10 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [4.2.0] — 2026-09-25
 ### Added
 
-- `Client::data()` for the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit), with optional `country`, `transcript` and `transcriptLanguage`. Returns the decoded `DataResult` JSON (`request_parameters`, `parse_status`, `data`). 15 credits per request.
+- `Client::data()` for the new `/data` endpoint: structured JSON for a page on a supported site (e.g. YouTube, TikTok, X, LinkedIn, Instagram, Reddit), with optional `country`, `transcript` and `transcriptLanguage`. Returns the decoded `DataResult` JSON (`request_parameters`, `parse_status`, `data`). Priced per site (see https://webscraping.ai/docs#data).
 - The URL is not checked against a list of sites client-side (only non-blank; a blank `url` throws `\InvalidArgumentException`), so sites added on the server work without a client upgrade. An unsupported URL or page type returns a 400 that is not charged (`BadRequestException`). Its message lists what is supported.
 - `data()` accepts `array $params` for provider-specific query parameters added server-side later, sent as-is. Numeric keys are sent as strings. `api_key`, `url`, `country`, `transcript`, `transcript_language` (use the named arguments, even when unset) or a non-scalar value throws `\InvalidArgumentException`.
-- `bin/smoke.php` adds a YouTube `/data` call (asserts `parse_status` `ok`, provider `youtube` and a non-empty `data.title`) and an `https://example.com/` call that must come back as a server 400 whose message contains `Unsupported URL` (~46 credits per sweep).
+- `bin/smoke.php` adds a YouTube `/data` call (asserts `parse_status` `ok`, provider `youtube` and a non-empty `data.title`) and an `https://example.com/` call that must come back as a server 400 whose message contains `Unsupported URL`.
 
 ### Security
 
@@ -36,9 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Client::serp()` for the new `/serp` endpoint: parsed search engine results for a query (`q`, optional `engine`, `gl`, `hl`, `page`). Returns the decoded `SerpResult` JSON. Flat 15 credits per search; failed searches are not charged.
+- `Client::serp()` for the new `/serp` endpoint: parsed search engine results for a query (`q`, optional `engine`, `gl`, `hl`, `page`). Returns the decoded `SerpResult` JSON. Priced per search (see https://webscraping.ai/docs#serp); failed searches are not charged.
 - `serp()` validates its input before sending: whitespace-only `q` and `page` < 1 throw `\InvalidArgumentException` (the server also rejects an invalid page with a 400, not billed; checking client-side saves the round trip). Pages are 1–100: the server rejects a `page` above 100 with a 400.
-- `bin/smoke.php` now asserts on result shape (non-empty results, SERP `organic_results` and echoed `q`, a non-empty `selected_multiple` match, `fields` `result` key), runs page tools with `js=false` + datacenter proxy (~31 credits), catches every exception per case, redacts the API key from failure output and prints single-line previews.
+- `bin/smoke.php` now asserts on result shape (non-empty results, SERP `organic_results` and echoed `q`, a non-empty `selected_multiple` match, `fields` `result` key), runs page tools with `js=false` + datacenter proxy to keep the sweep cheap, catches every exception per case, redacts the API key from failure output and prints single-line previews.
 
 ### Fixed
 
