@@ -68,8 +68,8 @@ $fields = $client->fields(
     ],
 );
 
-// Structured data for a page on a supported site (YouTube, TikTok, X, ...)
-$video = $client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+// Structured data for any public web page
+$page = $client->data(url: 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html');
 
 // Account quota
 $account = $client->account();
@@ -114,40 +114,65 @@ $locations = $client->serpLocations(q: 'austin', limit: 3);
 $serp = $client->serp(q: 'coffee machines', location: $locations[0]['canonical_name']);
 ```
 
-## Structured data for supported sites
+## Structured data for any web page
 
-`data()` returns structured JSON for a public page on a supported site — pass the page's normal URL, e.g. a YouTube video/channel/playlist, TikTok video/profile, X (Twitter) post/profile, LinkedIn company/job/profile, Instagram post/reel/profile or Reddit post/subreddit/user. The site (`provider`) and page kind (`type`) are detected from the URL. Priced per site (see [pricing](https://webscraping.ai/docs#data)), including results that parse empty or no longer exist; unsupported URLs and failed fetches are not charged.
+`data()` returns structured JSON for any public web page — pass the page's normal URL. The site the page belongs to (`provider`, e.g. `toscrape.com`) and the kind of page (`type`, e.g. `product`) are detected server-side. Some popular sites have dedicated parsers with fixed fields; for other sites an AI model learns the structure of each new kind of page once, and from then on pages of that kind on that site return data straight away for every user. Pricing: see [the API docs](https://webscraping.ai/docs#data). Failed fetches are not charged.
 
-More sites and page types are added on the server over time and work without upgrading this package, so the client does **not** check which sites are supported — only that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request). An unsupported URL or page type returns a 400 that is not charged (`BadRequestException`). Its message lists what is supported. For other sites use `fields()`.
+The client only checks that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request).
 
-None of the page-scraping parameters (`js`, `proxy`, `headers`, `timeout`, …) apply. The options are:
+The named options are:
 
 - `country` — two-letter country code of the proxy used to fetch the page, `us` by default. The server rejects unknown codes with a 400.
-- `transcript` — YouTube videos only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 and is not charged.
-- `transcriptLanguage` — caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
+- `transcript` — video pages on sites with a dedicated parser only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 and is not charged.
+- `transcriptLanguage` — with `transcript: true`. Caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
 
 ```php
-use WebScrapingAI\Exception\BadRequestException;
-
-$result = $client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', transcript: true);
+$result = $client->data(url: 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html');
 
 if ($result['parse_status'] === 'ok') {
     echo $result['request_parameters']['provider'], ': ', $result['data']['title'], "\n";
-}
-
-try {
-    $client->data(url: 'https://example.com/');
-} catch (BadRequestException $e) {
-    echo $e->getMessage(); // "Unsupported URL for /data. ..." — lists what is supported
+    // toscrape.com: A Light in the Attic
 }
 ```
 
-The decoded array has `request_parameters` (`url`, `provider`, `type`), `parse_status` and `data`. `provider` and `type` are open sets — expect new values. `parse_status` is `ok`, `parse_failed` (fetched but not parsed; `data` may be `null` or partial) or `not_found`; all three are charged successes. The shape of `data` depends on `provider` and `type`.
-
-Provider-specific parameters added server-side after this release can be sent through `params`, as-is (scalar values; `null` is dropped). `api_key`, `url`, `country`, `transcript` and `transcript_language` are rejected with `\InvalidArgumentException` — use the named arguments for those, even when you haven't set them:
+The decoded array has `request_parameters` (`url`, `provider`, `type`), `parse_status` and `data`, e.g.:
 
 ```php
-$client->data(url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', params: ['some_new_option' => 'value']);
+[
+    'request_parameters' => ['url' => 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html', 'provider' => 'toscrape.com', 'type' => 'product'],
+    'parse_status' => 'ok',
+    'data' => ['title' => 'A Light in the Attic', 'price' => 51.77, 'currency' => 'GBP', /* ... */],
+]
+```
+
+`provider` and `type` are open sets — expect new values. `parse_status` is `ok`, `parse_failed` (fetched but not parsed; `data` may be `null` or partial) or `not_found`; all three are charged successes. The shape of `data` depends on `provider` and `type`.
+
+### Structure still being learned (503) and no structured data (422)
+
+On a site without a dedicated parser, the first request for a new kind of page also learns its structure, so it can take up to about 45 seconds; keep the transport timeout (see [Timeouts](#timeouts), 60s by default) above that. When learning takes longer, or another request is already learning that site, the API answers **HTTP 503** with the body `{"message": "...", "error_code": "structure_processing", "retry_after": 30}` (plus a `Retry-After` header). It is not charged. 503 has no dedicated exception class, so it's raised as the base `WebScrapingAI\Exception\ApiException` (`$status === 503`; the raw JSON, including `error_code` and `retry_after`, is in `$responseBody`). Retry after `retry_after` seconds; the retry can return data (if learning failed meanwhile, it may learn again or answer the 422 below):
+
+```php
+use WebScrapingAI\Exception\ApiException;
+
+try {
+    $result = $client->data(url: $url);
+} catch (ApiException $e) {
+    if ($e->status !== 503) {
+        throw $e;
+    }
+    sleep(json_decode($e->responseBody ?? '', true)['retry_after'] ?? 30);
+    $result = $client->data(url: $url);
+}
+```
+
+If no structured data can be found on the page (e.g. it's empty or behind a login wall), the API answers **HTTP 422** with `error_code: "structure_unavailable"`, not charged. 422 has no dedicated exception class, so it's raised as the base `WebScrapingAI\Exception\ApiException` (`$status === 422`; the raw JSON, including `error_code`, is in `$responseBody`). Use `fields()` for such pages.
+
+Redirects within the same site (http→https, `www`, trailing slash) are followed; a redirect to another site raises a `ServerException` (HTTP 500, `error_code` `target_redirect`, the target in the message), not charged. Starting too many new kinds of pages in an hour raises a `RateLimitException` (HTTP 429, `error_code` `rate_limited`).
+
+Extra parameters (e.g. ones added server-side after this release) can be sent through `params`, as-is (scalar values; `null` is dropped). `api_key`, `url`, `country`, `transcript` and `transcript_language` are rejected with `\InvalidArgumentException` — use the named arguments for those, even when you haven't set them:
+
+```php
+$client->data(url: 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html', params: ['some_new_option' => 'value']);
 ```
 
 ## Bring your own HTTP client
@@ -201,6 +226,8 @@ The client raises typed exceptions for every documented status code:
 | 429 | `WebScrapingAI\Exception\RateLimitException` |
 | 500 | `WebScrapingAI\Exception\ServerException` |
 | 504 | `WebScrapingAI\Exception\GatewayTimeoutException` |
+
+Other error statuses (e.g. 503 `structure_processing` and 422 `structure_unavailable` from `data()`) raise the base `WebScrapingAI\Exception\ApiException`.
 
 All inherit from `WebScrapingAI\Exception\ApiException`, which exposes `$message`, `$status`, `$statusCode`, `$statusMessage`, `$body`, and `$responseBody`. The latter three are populated when the API surfaces target-page errors as 500s.
 

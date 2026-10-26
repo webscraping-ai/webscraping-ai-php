@@ -5,12 +5,15 @@ declare(strict_types=1);
 /**
  * Hand-run smoke test against the live API. Not part of the test suite.
  *
- * Costs ~76 credits per full sweep: account and serp_locations (free), 4 page
- * calls (html/text/selected/selected_multiple) with js=false + datacenter proxy
- * at 1 credit each, question + fields at 6 each (datacenter, no JS), one
- * one-page SERP search at 15, one two-page located SERP search at 2 × 15, one
- * /data call at 15, and one /data call on an unsupported URL that the server
- * must reject with a free 400 → 4 + 12 + 15 + 30 + 15 = 76.
+ * Uses real credits (see https://webscraping.ai/docs for pricing): account
+ * and serp_locations (free), 4 page calls (html/text/selected/selected_multiple)
+ * and question + fields with js=false + datacenter proxy to keep the cost down,
+ * one one-page SERP search, one two-page located SERP search (billed per page
+ * returned) and one /data call. A second /data call on example.com (a site
+ * without a dedicated parser) is not charged when learning its structure
+ * outlasts the request (503), when nothing is found (422) or when extracting
+ * the data or loading the page runs out of time (a 500 timeout); otherwise it
+ * is a normal, charged success.
  *
  * Each case asserts on the shape of the result, not just the absence of an
  * exception; any failure prints a FAIL line and the script exits 1.
@@ -22,7 +25,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use WebScrapingAI\Client;
-use WebScrapingAI\Exception\BadRequestException;
+use WebScrapingAI\Exception\ApiException;
 
 $apiKey = getenv('WEBSCRAPING_AI_KEY');
 if (!is_string($apiKey) || $apiKey === '') {
@@ -142,22 +145,30 @@ $cases = [
 
         return [$r, null];
     },
-    // Proves there is no client-side site filter: the *server* must reject it (400, not charged).
-    'data_unsupported' => function () use ($client) {
+    // /data works on any public page: accept data, a 503 structure_processing when
+    // learning the structure outlasts the request, a 422 structure_unavailable, or a
+    // 500 timeout when extracting the data or loading the page runs out of time.
+    'data_any_site' => function () use ($client) {
         try {
             $r = $client->data(url: 'https://example.com/');
-        } catch (BadRequestException $e) {
-            if ($e->status !== 400) {
-                return ['HTTP ' . $e->status . ' ' . $e->getMessage(), "status {$e->status}, expected 400"];
+        } catch (ApiException $e) {
+            $decoded = json_decode($e->responseBody ?? '', true);
+            $errorCode = is_array($decoded) ? ($decoded['error_code'] ?? null) : null;
+            $expected = [503 => 'structure_processing', 422 => 'structure_unavailable', 500 => 'timeout'][$e->status] ?? null;
+            if ($expected === null) {
+                return ['HTTP ' . $e->status . ' ' . $e->getMessage(), "status {$e->status}, expected data, 503, 422 or 500"];
             }
-            if (!str_contains($e->getMessage(), 'Unsupported URL')) {
-                return ['400 ' . $e->getMessage(), 'message does not contain "Unsupported URL"'];
+            if ($errorCode !== $expected) {
+                return ["{$e->status} " . $e->getMessage(), 'error_code is ' . var_export($errorCode, true) . ", expected \"{$expected}\""];
             }
 
-            return ['400 ' . $e->getMessage(), null];
+            return ["{$e->status} {$errorCode}: " . $e->getMessage(), null];
+        }
+        if (!is_array($r['request_parameters'] ?? null)) {
+            return [$r, 'expected request_parameters, a 503 structure_processing, a 422 structure_unavailable or a 500 timeout'];
         }
 
-        return [$r, 'expected a 400 BadRequestException from the server, got a 200'];
+        return [$r, null];
     },
 ];
 

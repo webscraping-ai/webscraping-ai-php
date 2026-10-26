@@ -518,36 +518,44 @@ final class Client
     }
 
     /**
-     * Structured data for a page on a supported site.
+     * Structured data for any public web page.
      *
-     * Pass the page's normal URL (e.g. a YouTube video, TikTok profile, X post,
-     * LinkedIn company, Instagram reel or Reddit thread); the site and page kind
-     * are detected server-side. More sites and page types are added on the server
-     * over time, so the client deliberately does not validate the URL beyond
-     * "non-blank": an unsupported URL or page type returns a 400 that is not
-     * charged (`BadRequestException`). Its message lists what is supported.
+     * Pass the page's normal URL; the site the page belongs to (`provider`, e.g.
+     * `toscrape.com`) and the kind of page (`type`, e.g. `product`) are detected
+     * server-side. Some popular sites have dedicated parsers with fixed fields; for
+     * other sites an AI model learns each new kind of page once. The client does not
+     * validate the URL beyond "non-blank".
      *
-     * URL-shaped but not a page-scraping call: none of the scraping options (js,
-     * proxy, headers, timeout, device, ...) apply. Priced per site (see
-     * https://webscraping.ai/docs#data), including `parse_failed` / `not_found`
-     * results; unsupported URLs and failed fetches are not charged.
+     * Pricing: see https://webscraping.ai/docs#data. `parse_failed` / `not_found`
+     * results are charged; failed fetches are not.
      *
      * Returns the decoded `DataResult` JSON: `request_parameters` (`url`, `provider`,
      * `type` — open sets of strings), `parse_status` (`ok`, `parse_failed` or
      * `not_found`) and `data` (provider/type-specific array, or `null`).
      *
+     * The first request for a new kind of page also learns its structure, so it can
+     * take up to about 45 seconds (keep the transport timeout above that). When
+     * learning takes longer, or another request is already learning that site,
+     * the API answers HTTP 503 with `error_code` `structure_processing` and
+     * `retry_after` (seconds), not charged; it is raised as the base `ApiException`
+     * (`$status === 503`, raw JSON in `$responseBody`). Retry after `retry_after`
+     * seconds, which can return data. When no structured data can be found
+     * (empty page, login wall), the API answers 422 `structure_unavailable` (not
+     * charged), raised as the base `ApiException`; use fields() instead.
+     *
      * @param string      $url                Page URL (required, not empty or whitespace-only; sent as given).
      * @param string|null $country            Two-letter country code of the proxy used to fetch the page, `us` by
      *                                        default. The server checks it and rejects unknown ones with a 400.
-     * @param bool|null   $transcript         YouTube videos only. Also fetch the video's transcript into
-     *                                        `data.transcript`. It's null when no matching captions are available.
+     * @param bool|null   $transcript         Video pages on sites with a dedicated parser only. Also fetch the
+     *                                        video's transcript into `data.transcript`. It's null when no matching
+     *                                        captions are available.
      *                                        If the transcript fetch itself fails, the whole request fails with a
      *                                        500 and is not charged.
-     * @param string|null $transcriptLanguage Caption language to pick, e.g. `en` or `de`. Without it, English is
-     *                                        preferred, then the first available track. If the video has no
-     *                                        captions in that language, `data.transcript` is null.
-     * @param array<int|string, string|int|float|bool|null> $params Extra query parameters sent as-is, for
-     *                                        provider-specific options added server-side after this release.
+     * @param string|null $transcriptLanguage With transcript=true. Caption language to pick, e.g. `en` or `de`.
+     *                                        Without it, English is preferred, then the first available track. If
+     *                                        the video has no captions in that language, `data.transcript` is null.
+     * @param array<int|string, string|int|float|bool|null> $params Extra query parameters sent as-is, e.g.
+     *                                        options added server-side after this release.
      *                                        Scalar values only; `null` values are dropped. May not contain
      *                                        `api_key`, `url`, `country`, `transcript` or `transcript_language`
      *                                        (use the named arguments for those).
