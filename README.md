@@ -116,7 +116,7 @@ $serp = $client->serp(q: 'coffee machines', location: $locations[0]['canonical_n
 
 ## Structured data for any web page
 
-`data()` returns structured JSON for any public web page — pass the page's normal URL. The site the page belongs to (`provider`, e.g. `toscrape.com`) and the kind of page (`type`, e.g. `product`) are detected server-side. Some popular sites have dedicated parsers with fixed fields; for other sites an AI model learns the structure of each new kind of page once, and from then on pages of that kind on that site return data straight away for every user. Pricing: see [the API docs](https://webscraping.ai/docs#data). Failed fetches are not charged.
+`data()` returns structured JSON for any public web page — pass the page's normal URL. The site the page belongs to (`provider`, e.g. `toscrape.com`) and the kind of page (`type`, e.g. `book`) are detected server-side. Some popular sites have dedicated parsers with fixed fields; for other sites an AI model learns the structure of each new kind of page once, and from then on pages of that kind on that site return data straight away for every user. Pricing: see [the API docs](https://webscraping.ai/docs#data). Failed fetches are not charged.
 
 The client only checks that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request).
 
