@@ -522,7 +522,7 @@ final class Client
      * Structured data for any public web page.
      *
      * Pass the page's normal URL; the site the page belongs to (`provider`, e.g.
-     * `toscrape.com`) and the kind of page (`type`, e.g. `product`) are detected
+     * `toscrape.com`) and the kind of page (`type`, e.g. `book`) are detected
      * server-side. Some popular sites have dedicated parsers with fixed fields; for
      * other sites an AI model learns each new kind of page once. The client does not
      * validate the URL beyond "non-blank".
