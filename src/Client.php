@@ -168,8 +168,8 @@ final class Client
     /**
      * Extract structured fields from the target page using an LLM.
      *
-     * Note: the live API currently wraps the extracted fields under a `result` key
-     * (`{"result": {...fields...}}`), which differs from the OpenAPI example. The
+     * The API wraps the extracted fields under a `result` key
+     * (`{"result": {...fields...}}`), and every value is a string or `null`. The
      * client returns whatever the API returns — unwrap on your side if needed.
      *
      * @param array<string, string>      $fields  Field name → description.
@@ -344,7 +344,8 @@ final class Client
      * containing all matches concatenated), which differs from the OpenAPI
      * `SelectedAreas` schema. The client returns whatever the API returns.
      *
-     * @param list<string>|null          $selectors CSS selectors. Empty/null returns the whole page HTML.
+     * @param list<string>|null          $selectors CSS selectors. Empty/null omits the parameter; the API never
+     *                                             returns the whole page, so pass at least one selector.
      * @param array<string, string>|null $headers   HTTP headers forwarded to the target page.
      * @return array<int|string, mixed>
      */
@@ -541,11 +542,17 @@ final class Client
      * (`$status === 503`, raw JSON in `$responseBody`). Retry after `retry_after`
      * seconds, which can return data. When no structured data can be found
      * (empty page, login wall), the API answers 422 `structure_unavailable` (not
-     * charged), raised as the base `ApiException`; use fields() instead.
+     * charged), raised as the base `ApiException`; use fields() instead. If loading
+     * the page or extracting the data runs out of time, or the AI model is busy, the
+     * API answers 500 with `error_code` `timeout` or `ai_unavailable` (not charged),
+     * raised as `ServerException`; call again.
      *
      * @param string      $url                Page URL (required, not empty or whitespace-only; sent as given).
-     * @param string|null $country            Two-letter country code of the proxy used to fetch the page, `us` by
-     *                                        default. The server checks it and rejects unknown ones with a 400.
+     * @param string|null $country            Two-letter country code of the proxy used to fetch the page. Without
+     *                                        it, pages on a country site with a dedicated parser (e.g.
+     *                                        `uk.indeed.com`) use that site's country and everything else uses
+     *                                        `us`. Some dedicated parsers use a fixed route and ignore it. The
+     *                                        server checks it and rejects unknown ones with a 400.
      * @param bool|null   $transcript         Video pages on sites with a dedicated parser only. Also fetch the
      *                                        video's transcript into `data.transcript`. It's null when no matching
      *                                        captions are available.

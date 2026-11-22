@@ -12,8 +12,8 @@ declare(strict_types=1);
  * returned) and one /data call. A second /data call on example.com (a site
  * without a dedicated parser) is not charged when learning its structure
  * outlasts the request (503), when nothing is found (422) or when extracting
- * the data or loading the page runs out of time (a 500 timeout); otherwise it
- * is a normal, charged success.
+ * the data or loading the page runs out of time (a 500 timeout) or when the AI
+ * model is busy (a 500 ai_unavailable); otherwise it is a normal, charged success.
  *
  * Each case asserts on the shape of the result, not just the absence of an
  * exception; any failure prints a FAIL line and the script exits 1.
@@ -146,26 +146,31 @@ $cases = [
         return [$r, null];
     },
     // /data works on any public page: accept data, a 503 structure_processing when
-    // learning the structure outlasts the request, a 422 structure_unavailable, or a
-    // 500 timeout when extracting the data or loading the page runs out of time.
+    // learning the structure outlasts the request, a 422 structure_unavailable, a
+    // 500 timeout when extracting the data or loading the page runs out of time, or
+    // a 500 ai_unavailable when the AI model is busy.
     'data_any_site' => function () use ($client) {
         try {
             $r = $client->data(url: 'https://example.com/');
         } catch (ApiException $e) {
             $decoded = json_decode($e->responseBody ?? '', true);
             $errorCode = is_array($decoded) ? ($decoded['error_code'] ?? null) : null;
-            $expected = [503 => 'structure_processing', 422 => 'structure_unavailable', 500 => 'timeout'][$e->status] ?? null;
+            $expected = [
+                503 => ['structure_processing'],
+                422 => ['structure_unavailable'],
+                500 => ['timeout', 'ai_unavailable'],
+            ][$e->status] ?? null;
             if ($expected === null) {
                 return ['HTTP ' . $e->status . ' ' . $e->getMessage(), "status {$e->status}, expected data, 503, 422 or 500"];
             }
-            if ($errorCode !== $expected) {
-                return ["{$e->status} " . $e->getMessage(), 'error_code is ' . var_export($errorCode, true) . ", expected \"{$expected}\""];
+            if (!in_array($errorCode, $expected, true)) {
+                return ["{$e->status} " . $e->getMessage(), 'error_code is ' . var_export($errorCode, true) . ', expected "' . implode('" or "', $expected) . '"'];
             }
 
             return ["{$e->status} {$errorCode}: " . $e->getMessage(), null];
         }
         if (!is_array($r['request_parameters'] ?? null)) {
-            return [$r, 'expected request_parameters, a 503 structure_processing, a 422 structure_unavailable or a 500 timeout'];
+            return [$r, 'expected request_parameters, a 503 structure_processing, a 422 structure_unavailable or a 500 timeout/ai_unavailable'];
         }
 
         return [$r, null];

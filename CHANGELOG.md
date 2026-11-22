@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+
+- Docs: `data()`'s `country` has no fixed `us` default. Without it, pages on a country site with a dedicated parser (e.g. `uk.indeed.com`) use that site's country and everything else uses `us`; some dedicated parsers ignore it.
+- Docs: the README now lists the page options by their real camelCase named-argument names (`jsTimeout`, `waitFor`, `customProxy`, …), so copied calls work.
+- Docs: `selectedMultiple()`'s `$selectors` docblock no longer claims an empty list returns the whole page (the API never does).
+- Docs: the `/data` example shows the live output (`type` `book`, `currency` `£`), and the `/data` error notes cover the retryable 500 `timeout` and `ai_unavailable` (not charged).
+- Docs: the `fields()` `result` wrapper is documented in the API spec now, so it is no longer described as a divergence; every value is a string or `null`.
+- `bin/smoke.php`: the `/data` any-site check also accepts a 500 `ai_unavailable`.
 
 ## [4.3.0] — 2026-10-24
 ### Added
