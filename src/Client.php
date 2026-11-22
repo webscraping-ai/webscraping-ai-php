@@ -549,10 +549,10 @@ final class Client
      *
      * @param string      $url                Page URL (required, not empty or whitespace-only; sent as given).
      * @param string|null $country            Two-letter country code of the proxy used to fetch the page. Without
-     *                                        it, pages on a country site with a dedicated parser (e.g.
-     *                                        `uk.indeed.com`) use that site's country and everything else uses
-     *                                        `us`. Some dedicated parsers use a fixed route and ignore it. The
-     *                                        server checks it and rejects unknown ones with a 400.
+     *                                        it, Indeed country sites (e.g. `uk.indeed.com`) use that site's
+     *                                        country and everything else uses `us`. Some dedicated parsers use
+     *                                        a fixed route and ignore it. The server checks it and rejects
+     *                                        unknown ones with a 400.
      * @param bool|null   $transcript         Video pages on sites with a dedicated parser only. Also fetch the
      *                                        video's transcript into `data.transcript`. It's null when no matching
      *                                        captions are available.
