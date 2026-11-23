@@ -75,7 +75,7 @@ $page = $client->data(url: 'https://books.toscrape.com/catalogue/a-light-in-the-
 $account = $client->account();
 ```
 
-All optional parameters (`headers`, `timeout`, `js`, `js_timeout`, `wait_for`, `proxy`, `country`, `custom_proxy`, `device`, `error_on_404`, `error_on_redirect`, `js_script`, …) are PHP named arguments. See [the API docs](https://webscraping.ai/docs) for the full parameter reference.
+All optional parameters are PHP named arguments in camelCase (`headers`, `timeout`, `js`, `jsTimeout`, `waitFor`, `proxy`, `country`, `customProxy`, `device`, `errorOn404`, `errorOnRedirect`, `jsScript`, …); the client sends them as the API's snake_case query parameters (`js_timeout`, `wait_for`, …), e.g. `$client->html(url: 'https://example.com', jsTimeout: 5000, waitFor: 'h1')`. See [the API docs](https://webscraping.ai/docs) for the full parameter reference.
 
 ## Search engine results (SERP)
 
@@ -116,13 +116,13 @@ $serp = $client->serp(q: 'coffee machines', location: $locations[0]['canonical_n
 
 ## Structured data for any web page
 
-`data()` returns structured JSON for any public web page — pass the page's normal URL. The site the page belongs to (`provider`, e.g. `toscrape.com`) and the kind of page (`type`, e.g. `product`) are detected server-side. Some popular sites have dedicated parsers with fixed fields; for other sites an AI model learns the structure of each new kind of page once, and from then on pages of that kind on that site return data straight away for every user. Pricing: see [the API docs](https://webscraping.ai/docs#data). Failed fetches are not charged.
+`data()` returns structured JSON for any public web page — pass the page's normal URL. The site the page belongs to (`provider`, e.g. `toscrape.com`) and the kind of page (`type`, e.g. `book`) are detected server-side. Some popular sites have dedicated parsers with fixed fields; for other sites an AI model learns the structure of each new kind of page once, and from then on pages of that kind on that site return data straight away for every user. Pricing: see [the API docs](https://webscraping.ai/docs#data). Failed fetches are not charged.
 
 The client only checks that `url` is non-blank (a blank `url` throws `\InvalidArgumentException` before any request).
 
 The named options are:
 
-- `country` — two-letter country code of the proxy used to fetch the page, `us` by default. The server rejects unknown codes with a 400.
+- `country` — two-letter country code of the proxy used to fetch the page. Without it, Indeed country sites (e.g. `uk.indeed.com`) use that site's country and everything else uses `us`. Some dedicated parsers use a fixed route and ignore it. The server rejects unknown codes with a 400.
 - `transcript` — video pages on sites with a dedicated parser only. Also fetch the video's transcript into `data.transcript`. It's null when no matching captions are available. If the transcript fetch itself fails, the whole request fails with a 500 and is not charged.
 - `transcriptLanguage` — with `transcript: true`. Caption language to pick, e.g. `en` or `de`. Without it, English is preferred, then the first available track. If the video has no captions in that language, `data.transcript` is null.
 
@@ -139,9 +139,9 @@ The decoded array has `request_parameters` (`url`, `provider`, `type`), `parse_s
 
 ```php
 [
-    'request_parameters' => ['url' => 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html', 'provider' => 'toscrape.com', 'type' => 'product'],
+    'request_parameters' => ['url' => 'https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html', 'provider' => 'toscrape.com', 'type' => 'book'],
     'parse_status' => 'ok',
-    'data' => ['title' => 'A Light in the Attic', 'price' => 51.77, 'currency' => 'GBP', /* ... */],
+    'data' => ['title' => 'A Light in the Attic', 'price' => 51.77, 'currency' => '£', /* ... */],
 ]
 ```
 
@@ -167,7 +167,7 @@ try {
 
 If no structured data can be found on the page (e.g. it's empty or behind a login wall), the API answers **HTTP 422** with `error_code: "structure_unavailable"`, not charged. 422 has no dedicated exception class, so it's raised as the base `WebScrapingAI\Exception\ApiException` (`$status === 422`; the raw JSON, including `error_code`, is in `$responseBody`). Use `fields()` for such pages.
 
-Redirects within the same site (http→https, `www`, trailing slash) are followed; a redirect to another site raises a `ServerException` (HTTP 500, `error_code` `target_redirect`, the target in the message), not charged. Starting too many new kinds of pages in an hour raises a `RateLimitException` (HTTP 429, `error_code` `rate_limited`).
+Redirects within the same site (http→https, `www`, trailing slash) are followed; a redirect to another site raises a `ServerException` (HTTP 500, `error_code` `target_redirect`, the target in the message), not charged. Starting too many new kinds of pages in an hour raises a `RateLimitException` (HTTP 429, `error_code` `rate_limited`). If loading the page or extracting the data runs out of time, or the AI model is busy, it raises a `ServerException` (HTTP 500, `error_code` `timeout` or `ai_unavailable`), not charged; call again.
 
 Extra parameters (e.g. ones added server-side after this release) can be sent through `params`, as-is (scalar values; `null` is dropped). `api_key`, `url`, `country`, `transcript` and `transcript_language` are rejected with `\InvalidArgumentException` — use the named arguments for those, even when you haven't set them:
 
@@ -237,12 +237,10 @@ All SDK-originated exceptions implement the marker interface `WebScrapingAI\Exce
 
 ## Response shapes
 
-The client returns whatever the API returns — it does not normalise or unwrap. A couple of current quirks worth knowing:
+The client returns whatever the API returns — it does not normalise or unwrap. Worth knowing:
 
-- `fields()` returns `['result' => [...fields...]]` (the live API wraps the extracted fields under a `result` key).
-- `selectedMultiple()` returns `array<int, array<int, string>>` — an outer wrapper containing all matched chunks concatenated.
-
-These are upstream spec/server drifts; the official Ruby and Python clients return the same shapes.
+- `fields()` returns `['result' => [...fields...]]`: the API wraps the extracted fields under a `result` key, and every value is a string or `null`.
+- `selectedMultiple()` returns `array<int, array<int, string>>` — an outer wrapper containing all matched chunks concatenated. This one is an upstream spec/server drift; the official Ruby and Python clients return the same shape.
 
 ## Migration from 3.x
 
